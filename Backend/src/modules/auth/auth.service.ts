@@ -15,6 +15,7 @@ export class AuthService {
     const hashedPassword = await hashPassword(dto.password);
     
     const { user } = await this.repository.initializeUser({
+      name: dto.name,
       email: dto.email,
       password: hashedPassword,
       bvn: dto.bvn, // Ideally encypted, simplified for hackathon or handled pre-db
