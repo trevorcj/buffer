@@ -1,6 +1,7 @@
 import app from './app';
 import dotenv from 'dotenv';
 import prisma from '@infrastructure/db/prisma';
+import { initCronJobs } from '@infrastructure/jobs/cron';
 
 dotenv.config();
 
@@ -11,6 +12,8 @@ const startServer = async () => {
     // Attempt DB connection to ensure DB is up
     await prisma.$connect();
     console.log('✅ Connected to database');
+
+    initCronJobs();
 
     app.listen(PORT, () => {
       console.log(`🚀 Buffer API Server is running on port ${PORT}`);
