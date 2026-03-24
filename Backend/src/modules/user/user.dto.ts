@@ -3,8 +3,8 @@ import { KycStatus, SavingMode } from '@prisma/client';
 
 export const verifyIdentitySchema = z.object({
   body: z.object({
-    bvn: z.string().optional(),
-    nin: z.string().optional(),
+    bvn: z.string().length(11, "BVN must be exactly 11 digits").regex(/^\d+$/, "BVN must only contain numbers").optional(),
+    nin: z.string().length(11, "NIN must be exactly 11 digits").regex(/^\d+$/, "NIN must only contain numbers").optional(),
   }).refine(data => data.bvn || data.nin, {
     message: "Either bvn or nin is required",
     path: ["bvn", "nin"]

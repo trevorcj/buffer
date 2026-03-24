@@ -8,6 +8,7 @@ export class UserRepository {
       include: {
         wallet: true,
         settings: true,
+        cards: true,
       },
     });
   }

@@ -50,6 +50,7 @@ model Transaction {
   userId    String
   user      User              @relation(fields: [userId], references: [id])
   amount    Decimal
+  merchantName String?
   status    TransactionStatus @default(PENDING)
   reference String            @unique @default(uuid())
   type      TransactionType
@@ -80,11 +81,14 @@ model Ledger {
 }
 
 model Card {
-  id        String     @id @default(uuid())
-  userId    String
-  user      User       @relation(fields: [userId], references: [id])
-  maskedPan String
-  status    CardStatus @default(ACTIVE)
+  id         String     @id @default(uuid())
+  userId     String
+  user       User       @relation(fields: [userId], references: [id])
+  pan        String
+  maskedPan  String
+  expiryDate String
+  cvv        String
+  status     CardStatus @default(ACTIVE)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 }
