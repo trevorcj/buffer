@@ -55,6 +55,7 @@ export class TransactionService {
         data: {
           userId,
           amount: dto.amount,
+          title: dto.title,
           merchantName: dto.merchantName,
           status: paymentResponse.status === 'SUCCESS' ? TransactionStatus.SUCCESS : TransactionStatus.FAILED,
           type: TransactionType.PAYMENT,

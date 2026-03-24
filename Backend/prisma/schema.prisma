@@ -50,6 +50,7 @@ model Transaction {
   userId    String
   user      User              @relation(fields: [userId], references: [id])
   amount    Decimal
+  title     String?
   merchantName String?
   status    TransactionStatus @default(PENDING)
   reference String            @unique @default(uuid())
