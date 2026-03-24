@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String         @id @default(uuid())
+  email        String         @unique
+  password     String
+  bvn          String?        // Encrypted
+  nin          String?        // Encrypted
+  kycStatus    KycStatus      @default(PENDING)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  
+  wallet       Wallet?
+  settings     UserSettings?
+  transactions Transaction[]
+  ledgers      Ledger[]
+  cards        Card[]
+}
+
+model Wallet {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id])
+  balance        Decimal  @default(0.0)
+  cushionBalance Decimal  @default(0.0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model UserSettings {
+  id               String      @id @default(uuid())
+  userId           String      @unique
+  user             User        @relation(fields: [userId], references: [id])
+  savingMode       SavingMode  @default(YAKUBU)
+  percentage       Decimal?    // E.g., 2.0 for 2%
+  roundUpThreshold Decimal?    // E.g., 50, 100, 500
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+}
+
+model Transaction {
+  id        String            @id @default(uuid())
+  userId    String
+  user      User              @relation(fields: [userId], references: [id])
+  amount    Decimal
+  status    TransactionStatus @default(PENDING)
+  reference String            @unique @default(uuid())
+  type      TransactionType
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  
+  roundUp   RoundUp?
+}
+
+model RoundUp {
+  id                String      @id @default(uuid())
+  transactionId     String      @unique
+  transaction       Transaction @relation(fields: [transactionId], references: [id])
+  originalAmount    Decimal
+  calculatedSavings Decimal
+  mode              SavingMode
+  createdAt         DateTime    @default(now())
+}
+
+model Ledger {
+  id          String     @id @default(uuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  type        LedgerType
+  amount      Decimal
+  description String
+  createdAt   DateTime   @default(now())
+}
+
+model Card {
+  id        String     @id @default(uuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  maskedPan String
+  status    CardStatus @default(ACTIVE)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  FAILED
+}
+
+enum SavingMode {
+  AGBA
+  YAKUBU
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum TransactionType {
+  PAYMENT
+  FUND_WALLET
+  CUSHION_WITHDRAWAL
+  CUSHION_BILL_PAYMENT
+}
+
+enum LedgerType {
+  DEBIT_MAIN
+  CREDIT_MAIN
+  DEBIT_CUSHION
+  CREDIT_CUSHION
+}
+
+enum CardStatus {
+  ACTIVE
+  FROZEN
+}
