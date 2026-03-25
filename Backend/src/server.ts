@@ -1,10 +1,9 @@
+import 'dotenv/config';
 import app from './app';
-import dotenv from 'dotenv';
 import prisma from '@infrastructure/db/prisma';
 
-dotenv.config();
-
 const PORT = process.env.PORT || 3000;
+console.log('Starting with DB:', process.env.DATABASE_URL);
 
 const startServer = async () => {
   try {
