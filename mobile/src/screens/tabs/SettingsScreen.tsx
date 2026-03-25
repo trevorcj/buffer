@@ -1,25 +1,21 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
-import Slider from '@react-native-community/slider';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '../../components/AppText';
 import { ModeOptionCard } from '../../components/ModeOptionCard';
+import { ModeSlider } from '../../components/ModeSlider';
+import { TipIllustration } from '../../components/PlaceholderIllustrations';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { updateSavingSettings } from '../../store/slices/bufferSlice';
+import { logout } from '../../store/slices/authSlice';
+import { resetBufferState, updateSavingSettings } from '../../store/slices/bufferSlice';
 import { colors } from '../../theme/colors';
 import { radii, spacing } from '../../theme/spacing';
 import { SavingMode, UserSettings } from '../../types/domain';
 import { getModeDescription } from '../../utils/format';
 
-const roundUpThresholds = [50, 100, 500];
-
 export function SettingsScreen() {
   const dispatch = useAppDispatch();
   const { profile, settings } = useAppSelector((state) => state.buffer);
-  const thresholdIndex = Math.max(
-    0,
-    roundUpThresholds.findIndex((item) => item === settings.roundUpThreshold),
-  );
 
   const updateSettings = (nextMode: SavingMode, nextValue: number) => {
     const nextSettings: UserSettings = {
@@ -33,6 +29,20 @@ export function SettingsScreen() {
 
   const configureValue =
     settings.savingMode === 'AGBA' ? settings.percentage : settings.roundUpThreshold;
+
+  const handleSignOut = () => {
+    Alert.alert('Sign out', 'You will return to the welcome screen.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: () => {
+          dispatch(resetBufferState());
+          dispatch(logout());
+        },
+      },
+    ]);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -84,30 +94,11 @@ export function SettingsScreen() {
               : 'Set your preferred round up threshold'}
           </AppText>
 
-          <View style={styles.sliderRow}>
-            <Slider
-              maximumTrackTintColor="#A6C5CC"
-              minimumTrackTintColor={colors.secondary}
-              minimumValue={settings.savingMode === 'AGBA' ? 1 : 0}
-              maximumValue={
-                settings.savingMode === 'AGBA' ? 5 : roundUpThresholds.length - 1
-              }
-              onValueChange={(value) => {
-                if (settings.savingMode === 'AGBA') {
-                  updateSettings('AGBA', Math.round(value));
-                } else {
-                  updateSettings('YAKUBU', roundUpThresholds[Math.round(value)]);
-                }
-              }}
-              step={1}
-              style={styles.slider}
-              thumbTintColor="#7FA7B1"
-              value={settings.savingMode === 'AGBA' ? settings.percentage : thresholdIndex}
-            />
-            <AppText style={styles.valueLabel} weight="semibold">
-              • {settings.savingMode === 'AGBA' ? `${settings.percentage}%` : `₦${settings.roundUpThreshold}`}
-            </AppText>
-          </View>
+          <ModeSlider
+            mode={settings.savingMode}
+            onValueChange={(value) => updateSettings(settings.savingMode, value)}
+            value={settings.savingMode === 'AGBA' ? settings.percentage : settings.roundUpThreshold}
+          />
 
           <AppText color={colors.gray} style={styles.helperText} weight="medium">
             {getModeDescription(settings.savingMode, configureValue)}
@@ -116,9 +107,7 @@ export function SettingsScreen() {
 
         <View style={styles.tipCard}>
           <View style={styles.tipIcon}>
-            <AppText style={styles.tipIconText} weight="bold">
-              ₦
-            </AppText>
+            <TipIllustration height={52} width={52} />
           </View>
           <View style={styles.tipCopy}>
             <AppText color={colors.gray} style={styles.tipLabel} weight="bold">
@@ -129,6 +118,12 @@ export function SettingsScreen() {
             </AppText>
           </View>
         </View>
+
+        <Pressable onPress={handleSignOut} style={styles.signOutButton}>
+          <AppText color={colors.danger} style={styles.signOutText} weight="semibold">
+            Sign Out
+          </AppText>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -184,24 +179,11 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginTop: spacing.lg,
   },
-  sliderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.xl,
-  },
-  slider: {
-    flex: 1,
-    height: 36,
-    marginLeft: -14,
-  },
-  valueLabel: {
-    fontSize: 15,
-    lineHeight: 20,
-  },
   helperText: {
-    marginTop: spacing.sm,
-    fontSize: 13,
+    marginTop: 12,
+    fontSize: 14,
     lineHeight: 18,
+    maxWidth: 400,
   },
   tipCard: {
     flexDirection: 'row',
@@ -215,15 +197,9 @@ const styles = StyleSheet.create({
   tipIcon: {
     height: 52,
     width: 52,
-    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E8F7EC',
-  },
-  tipIconText: {
-    fontSize: 20,
-    lineHeight: 24,
-    color: colors.success,
+    backgroundColor: 'transparent',
   },
   tipCopy: {
     flex: 1,
@@ -236,5 +212,19 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 15,
     lineHeight: 21,
+  },
+  signOutButton: {
+    marginTop: 18,
+    height: 48,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: '#F2D2D0',
+    backgroundColor: '#FFF5F4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  signOutText: {
+    fontSize: 15,
+    lineHeight: 20,
   },
 });

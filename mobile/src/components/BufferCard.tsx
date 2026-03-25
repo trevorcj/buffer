@@ -1,8 +1,9 @@
-import { StyleSheet, View } from 'react-native';
+import { useWindowDimensions, StyleSheet, View } from 'react-native';
 
 import { colors } from '../theme/colors';
 import { radii, spacing } from '../theme/spacing';
 import { AppText } from './AppText';
+import { IllustrationAsset } from './IllustrationAsset';
 
 interface BufferCardProps {
   variant: 'preview' | 'full';
@@ -17,6 +18,10 @@ export function BufferCard({
   cardNumber,
   bufferedLabel = 'You buffered ₦2,090 in the last 30 days',
 }: BufferCardProps) {
+  const { width } = useWindowDimensions();
+  const cardWidth = Math.max(280, Math.min(width - spacing.xl * 2, 361));
+  const cardHeight = Math.round((cardWidth * 200) / 361);
+
   if (variant === 'preview') {
     return (
       <View style={styles.previewStack}>
@@ -45,20 +50,18 @@ export function BufferCard({
   }
 
   return (
-    <View style={styles.fullCard}>
-      <AppText color={colors.secondary} style={styles.visaFull} weight="extrabold">
-        VISA
-      </AppText>
+    <View style={[styles.fullCardWrap, { height: cardHeight, width: cardWidth }]}>
+      <IllustrationAsset
+        height={cardHeight}
+        source={require('../../assets/buffer-card.svg')}
+        width={cardWidth}
+        style={styles.fullCardArt}
+      />
       <View style={styles.modeChip}>
         <AppText color={colors.secondary} style={styles.modeChipLabel} weight="bold">
           {modeLabel}
         </AppText>
       </View>
-      <View style={styles.outlineShapeOne} />
-      <View style={styles.outlineShapeTwo} />
-      <AppText color="#D0EF3F" style={styles.backgroundWord} weight="extrabold">
-        Buffer
-      </AppText>
     </View>
   );
 }
@@ -139,49 +142,36 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     letterSpacing: -0.25,
   },
-  fullCard: {
-    height: 177,
+  fullCardWrap: {
     borderRadius: radii.lg,
-    backgroundColor: colors.primary,
-    padding: spacing.xl,
     overflow: 'hidden',
+    alignSelf: 'center',
+    backgroundColor: colors.primary,
+    position: 'relative',
   },
-  visaFull: {
-    fontSize: 18,
-    lineHeight: 22,
+  fullCardArt: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
   },
   modeChip: {
     position: 'absolute',
     right: spacing.lg,
     top: spacing.lg,
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: 'rgba(12, 70, 81, 0.08)',
   },
   modeChipLabel: {
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 16,
   },
-  outlineShapeOne: {
-    position: 'absolute',
-    right: 16,
-    top: 24,
-    width: 72,
-    height: 86,
-    borderWidth: 1,
-    borderColor: colors.cardOutline,
-    transform: [{ skewY: '40deg' }],
-  },
-  outlineShapeTwo: {
-    position: 'absolute',
-    right: 42,
-    top: 6,
-    width: 56,
-    height: 70,
-    borderWidth: 1,
-    borderColor: colors.cardOutline,
-    transform: [{ skewY: '40deg' }],
+  visaFull: {
+    fontSize: 18,
+    lineHeight: 22,
   },
   backgroundWord: {
     position: 'absolute',

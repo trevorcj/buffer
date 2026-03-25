@@ -4,7 +4,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '../../components/AppText';
-import { ModeBadge } from '../../components/PlaceholderIllustrations';
+import { AgbaIllustration, YakubuIllustration } from '../../components/PlaceholderIllustrations';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { SetupStackParamList } from '../../navigation/types';
 import { colors } from '../../theme/colors';
@@ -33,7 +33,11 @@ export function PreviewScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.content}>
-        <ModeBadge mode={draftSettings.savingMode} />
+        {draftSettings.savingMode === 'AGBA' ? (
+          <AgbaIllustration height={58} width={66} />
+        ) : (
+          <YakubuIllustration height={58} width={66} />
+        )}
         <AppText style={styles.modeTitle} weight="bold">
           {draftSettings.savingMode === 'AGBA' ? 'Agba Mode' : 'Yakubu Mode'}
         </AppText>

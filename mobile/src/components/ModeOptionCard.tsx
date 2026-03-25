@@ -5,7 +5,7 @@ import { colors } from '../theme/colors';
 import { radii, spacing } from '../theme/spacing';
 import { SavingMode } from '../types/domain';
 import { AppText } from './AppText';
-import { ModeBadge } from './PlaceholderIllustrations';
+import { AgbaIllustration, YakubuIllustration } from './PlaceholderIllustrations';
 
 interface ModeOptionCardProps {
   mode: SavingMode;
@@ -24,7 +24,9 @@ export function ModeOptionCard({
 }: ModeOptionCardProps) {
   return (
     <Pressable onPress={onPress} style={[styles.card, selected && styles.selectedCard]}>
-      <ModeBadge mode={mode} />
+      <View style={styles.illustrationWrap}>
+        {mode === 'AGBA' ? <AgbaIllustration height={44} width={50} /> : <YakubuIllustration height={44} width={50} />}
+      </View>
       <View style={styles.content}>
         <AppText style={styles.title} weight="semibold">
           {title}
@@ -52,6 +54,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     backgroundColor: colors.white,
+  },
+  illustrationWrap: {
+    width: 54,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   selectedCard: {
     backgroundColor: colors.accent,

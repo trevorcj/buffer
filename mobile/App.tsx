@@ -3,14 +3,7 @@ import 'react-native-gesture-handler';
 import { useMemo, useState, useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import {
-  PlusJakartaSans_400Regular,
-  PlusJakartaSans_500Medium,
-  PlusJakartaSans_600SemiBold,
-  PlusJakartaSans_700Bold,
-  PlusJakartaSans_800ExtraBold,
-  useFonts,
-} from '@expo-google-fonts/plus-jakarta-sans';
+import { useFonts } from 'expo-font';
 import { Provider } from 'react-redux';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -36,11 +29,10 @@ export default function App() {
   const [preloadedState, setPreloadedState] = useState<PersistedState | undefined>();
   const [isHydrated, setIsHydrated] = useState(false);
   const [fontsLoaded] = useFonts({
-    PlusJakartaSans_400Regular,
-    PlusJakartaSans_500Medium,
-    PlusJakartaSans_600SemiBold,
-    PlusJakartaSans_700Bold,
-    PlusJakartaSans_800ExtraBold,
+    Aeonik_Regular: require('./assets/fonts/Aeonik-Regular.ttf'),
+    Aeonik_Medium: require('./assets/fonts/Aeonik-Medium.ttf'),
+    Aeonik_Bold: require('./assets/fonts/Aeonik-Bold.ttf'),
+    Aeonik_Black: require('./assets/fonts/Aeonik-Black.ttf'),
   });
 
   useEffect(() => {

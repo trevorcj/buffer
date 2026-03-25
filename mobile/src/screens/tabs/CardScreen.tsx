@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText } from '../../components/AppText';
 import { BufferCard } from '../../components/BufferCard';
 import { CircleIconButton } from '../../components/CircleIconButton';
+import { InsightsIllustration } from '../../components/PlaceholderIllustrations';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { toggleCardDetailsVisibility } from '../../store/slices/bufferSlice';
@@ -128,9 +129,7 @@ export function CardScreen() {
 
           <View style={styles.insightCard}>
             <View style={styles.insightIcon}>
-              <AppText style={styles.insightIconText} weight="bold">
-                ₦
-              </AppText>
+              <InsightsIllustration height={50} width={50} />
             </View>
             <View style={styles.insightCopy}>
               <AppText color={colors.gray} style={styles.insightLabel} weight="bold">
@@ -243,22 +242,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     marginTop: spacing.xl,
-    borderRadius: radii.lg,
-    backgroundColor: colors.white,
+    borderRadius: radii.md,
+    backgroundColor: '#F4F4F1',
     padding: spacing.lg,
   },
   insightIcon: {
     height: 50,
     width: 50,
-    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary,
-  },
-  insightIconText: {
-    color: colors.secondary,
-    fontSize: 20,
-    lineHeight: 24,
+    backgroundColor: 'transparent',
   },
   insightCopy: {
     flex: 1,

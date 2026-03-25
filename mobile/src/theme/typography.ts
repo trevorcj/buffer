@@ -1,9 +1,9 @@
 export const fontFamilies = {
-  regular: 'PlusJakartaSans_400Regular',
-  medium: 'PlusJakartaSans_500Medium',
-  semibold: 'PlusJakartaSans_600SemiBold',
-  bold: 'PlusJakartaSans_700Bold',
-  extrabold: 'PlusJakartaSans_800ExtraBold',
+  regular: 'Aeonik_Regular',
+  medium: 'Aeonik_Medium',
+  semibold: 'Aeonik_Bold',
+  bold: 'Aeonik_Bold',
+  extrabold: 'Aeonik_Black',
 } as const;
 
 export type FontWeightKey = keyof typeof fontFamilies;
