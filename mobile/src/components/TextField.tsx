@@ -2,6 +2,7 @@ import { StyleSheet, TextInput, TextInputProps, View } from 'react-native';
 
 import { colors } from '../theme/colors';
 import { radii, spacing } from '../theme/spacing';
+import { fontFamilies } from '../theme/typography';
 
 interface TextFieldProps extends TextInputProps {
   hasError?: boolean;
@@ -29,7 +30,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
   },
   input: {
-    fontFamily: 'PlusJakartaSans_500Medium',
+    fontFamily: fontFamilies.medium,
     fontSize: 15,
     color: colors.black,
     paddingVertical: 0,

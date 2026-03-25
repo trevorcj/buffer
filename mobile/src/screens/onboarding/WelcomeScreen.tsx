@@ -1,35 +1,33 @@
-import { StyleSheet, View } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, View } from "react-native";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { StatusBar } from "expo-status-bar";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { BufferOrbitIllustration } from '../../components/PlaceholderIllustrations';
-import { PrimaryButton } from '../../components/PrimaryButton';
-import { AppText } from '../../components/AppText';
-import { GuestStackParamList } from '../../navigation/types';
-import { colors } from '../../theme/colors';
-import { spacing } from '../../theme/spacing';
+import { PrimaryButton } from "../../components/PrimaryButton";
+import { AppText } from "../../components/AppText";
+import { GuestStackParamList } from "../../navigation/types";
+import { colors } from "../../theme/colors";
+import { spacing } from "../../theme/spacing";
 
-type Props = NativeStackScreenProps<GuestStackParamList, 'Welcome'>;
+type Props = NativeStackScreenProps<GuestStackParamList, "Welcome">;
 
 export function WelcomeScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="light" />
       <View style={styles.container}>
-        <View style={styles.hero}>
-          <BufferOrbitIllustration />
-        </View>
         <View style={styles.footer}>
           <AppText color={colors.white} style={styles.title} weight="bold">
             Buffer turns everyday spending into a cushion you can rely on
           </AppText>
           <PrimaryButton
             label="Create Account"
-            onPress={() => navigation.navigate('SignUp')}
+            onPress={() => navigation.navigate("SignUp")}
             style={styles.button}
           />
           <PrimaryButton
             label="Login to your account"
-            onPress={() => navigation.navigate('Login')}
+            onPress={() => navigation.navigate("Login")}
             style={styles.button}
             variant="secondary"
           />
@@ -47,23 +45,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xxl,
+    paddingTop: 18,
     paddingBottom: spacing.xxxl,
-  },
-  hero: {
-    flex: 1,
-    justifyContent: 'center',
+    justifyContent: "flex-end",
   },
   footer: {
-    gap: spacing.lg,
+    gap: 14,
   },
   title: {
-    fontSize: 24,
-    lineHeight: 31,
+    fontSize: 26,
+    lineHeight: 34,
     letterSpacing: -0.8,
     maxWidth: 320,
+    paddingBottom: spacing.lg,
   },
   button: {
-    marginTop: spacing.sm,
+    marginTop: 0,
   },
 });
