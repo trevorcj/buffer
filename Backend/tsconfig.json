@@ -12,11 +12,11 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
 
-    "baseUrl": ".",
+    "baseUrl": "./src",
     "paths": {
-      "@modules/*": ["src/modules/*"],
-      "@shared/*": ["src/shared/*"],
-      "@infrastructure/*": ["src/infrastructure/*"]
+      "@modules/*": ["modules/*"],
+      "@shared/*": ["shared/*"],
+      "@infrastructure/*": ["infrastructure/*"]
     }
   },
   "include": ["src/**/*"],
