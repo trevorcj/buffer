@@ -88,6 +88,36 @@ export class InterswitchClient {
     };
   }
 
+  async issueVirtualCard(userId: string) {
+    if (process.env.USE_MOCK_INTERSWITCH === 'true' || !process.env.INTERSWITCH_CLIENT_ID) {
+      console.log(`[Interswitch Mock] Issuing virtual card for user ${userId}`);
+      const suffix = Math.floor(1000 + Math.random() * 9000);
+      return {
+        pan: `400000000000${suffix}`,
+        maskedPan: `4000********${suffix}`,
+        expiryDate: "03/28",
+        cvv: Math.floor(100 + Math.random() * 900).toString(),
+        status: 'SUCCESS'
+      };
+    }
+
+    const api = await this.getClient();
+    const headers = this.generateInterswitchAuthHeaders('POST', '/api/v1/card360/issue');
+    try {
+      const response = await api.post('/api/v1/card360/issue', { customerId: userId, currency: 'NGN' }, { headers: { ...headers as any } });
+      return {
+        pan: response.data.pan,
+        maskedPan: response.data.maskedPan || response.data.pan.replace(/^(.{4}).*(.{4})$/, '$1********$2'),
+        expiryDate: response.data.expiryDate,
+        cvv: response.data.cvv,
+        status: 'SUCCESS'
+      };
+    } catch (error: any) {
+      console.error('[Interswitch] Card Issue failed', error.response?.data || error.message);
+      throw new Error('Failed to issue virtual card from provider');
+    }
+  }
+
   async authorizePayment(cardDetails: any, amount: number) {
     if (process.env.USE_MOCK_INTERSWITCH === 'true' || !process.env.INTERSWITCH_CLIENT_ID) {
       console.log(`[Interswitch Mock] Authorizing payment of ${amount} for PAN ${cardDetails.maskedPan}`);
