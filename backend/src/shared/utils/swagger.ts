@@ -10,7 +10,7 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: 'http://localhost:5432',
+        url: 'https://buffer-0sox.onrender.com',
         description: 'Requested / Render Server',
       },
       {
