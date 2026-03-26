@@ -1,6 +1,12 @@
 import { UserRepository } from './user.repository';
-import { VerifyIdentityDto, UpdateSettingsDto } from './user.dto';
+import {
+  VerifyIdentityDto,
+  UpdateSettingsDto,
+  SetTransactionPinDto,
+  ChangeTransactionPinDto,
+} from './user.dto';
 import { KycStatus } from '@prisma/client';
+import { comparePassword, hashPassword } from '@shared/utils/password';
 
 export class UserService {
   private repository = new UserRepository();
@@ -41,5 +47,36 @@ export class UserService {
     if (dto.roundUpThreshold !== undefined) updateData.roundUpThreshold = dto.roundUpThreshold;
 
     return this.repository.updateSettings(userId, updateData);
+  }
+
+  async setTransactionPin(userId: string, dto: SetTransactionPinDto) {
+    const existingPin = await this.repository.findTransactionPinByUserId(userId);
+    if (existingPin) throw new Error('Transaction PIN already set');
+
+    const transactionPin = await hashPassword(dto.pin);
+    await this.repository.updateTransactionPin(userId, transactionPin);
+
+    return { message: 'Transaction PIN set successfully' };
+  }
+
+  async changeTransactionPin(userId: string, dto: ChangeTransactionPinDto) {
+    const existingPin = await this.repository.findTransactionPinByUserId(userId);
+    if (!existingPin) throw new Error('Transaction PIN not set');
+
+    const isValidPin = await comparePassword(dto.currentPin, existingPin);
+    if (!isValidPin) throw new Error('Current transaction PIN is incorrect');
+
+    const transactionPin = await hashPassword(dto.newPin);
+    await this.repository.updateTransactionPin(userId, transactionPin);
+
+    return { message: 'Transaction PIN changed successfully' };
+  }
+
+  async verifyTransactionPin(userId: string, pin: string) {
+    const existingPin = await this.repository.findTransactionPinByUserId(userId);
+    if (!existingPin) throw new Error('Transaction PIN not set');
+
+    const isValidPin = await comparePassword(pin, existingPin);
+    if (!isValidPin) throw new Error('Invalid transaction PIN');
   }
 }

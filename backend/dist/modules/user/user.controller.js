@@ -48,5 +48,27 @@ class UserController {
             res.status(400).json({ error: error.message });
         }
     };
+    setTransactionPin = async (req, res) => {
+        try {
+            if (!req.user)
+                throw new Error('Unauthorized');
+            const result = await this.service.setTransactionPin(req.user.id, req.body);
+            res.status(200).json(result);
+        }
+        catch (error) {
+            res.status(400).json({ error: error.message });
+        }
+    };
+    changeTransactionPin = async (req, res) => {
+        try {
+            if (!req.user)
+                throw new Error('Unauthorized');
+            const result = await this.service.changeTransactionPin(req.user.id, req.body);
+            res.status(200).json(result);
+        }
+        catch (error) {
+            res.status(400).json({ error: error.message });
+        }
+    };
 }
 exports.UserController = UserController;

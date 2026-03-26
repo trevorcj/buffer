@@ -28,6 +28,7 @@ import walletRoutes from '@modules/wallet/wallet.routes';
 import transactionRoutes from '@modules/transaction/transaction.routes';
 import cushionRoutes from '@modules/cushion/cushion.routes';
 import cardRoutes from '@modules/card/card.routes';
+import transferRoutes from '@modules/transfers/transfer.routes';
 
 app.use('/auth', authRoutes);
 app.use('/user', userRoutes);
@@ -35,6 +36,7 @@ app.use('/wallet', walletRoutes);
 app.use('/transactions', transactionRoutes);
 app.use('/cushion', cushionRoutes);
 app.use('/card', cardRoutes);
+app.use('/transfers', transferRoutes);
 // Global Error Handler
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error(err.stack);

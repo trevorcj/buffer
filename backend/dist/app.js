@@ -28,12 +28,14 @@ const wallet_routes_1 = __importDefault(require("./modules/wallet/wallet.routes"
 const transaction_routes_1 = __importDefault(require("./modules/transaction/transaction.routes"));
 const cushion_routes_1 = __importDefault(require("./modules/cushion/cushion.routes"));
 const card_routes_1 = __importDefault(require("./modules/card/card.routes"));
+const transfer_routes_1 = __importDefault(require("./modules/transfers/transfer.routes"));
 app.use('/auth', auth_routes_1.default);
 app.use('/user', user_routes_1.default);
 app.use('/wallet', wallet_routes_1.default);
 app.use('/transactions', transaction_routes_1.default);
 app.use('/cushion', cushion_routes_1.default);
 app.use('/card', card_routes_1.default);
+app.use('/transfers', transfer_routes_1.default);
 // Global Error Handler
 app.use((err, req, res, next) => {
     console.error(err.stack);

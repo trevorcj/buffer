@@ -91,4 +91,24 @@ router.get('/settings', controller.getSettings);
  *         description: User settings updated
  */
 router.put('/settings', (0, validateRequest_1.validateRequest)(user_dto_1.updateSettingsSchema), controller.updateSettings);
+/**
+ * @swagger
+ * /user/set-transaction-pin:
+ *   post:
+ *     summary: Set a 4-digit transaction PIN
+ *     security:
+ *       - bearerAuth: []
+ *     tags: [User]
+ */
+router.post('/set-transaction-pin', (0, validateRequest_1.validateRequest)(user_dto_1.setTransactionPinSchema), controller.setTransactionPin);
+/**
+ * @swagger
+ * /user/change-transaction-pin:
+ *   put:
+ *     summary: Change an existing 4-digit transaction PIN
+ *     security:
+ *       - bearerAuth: []
+ *     tags: [User]
+ */
+router.put('/change-transaction-pin', (0, validateRequest_1.validateRequest)(user_dto_1.changeTransactionPinSchema), controller.changeTransactionPin);
 exports.default = router;

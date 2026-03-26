@@ -2,7 +2,12 @@ import { Router } from 'express';
 import { UserController } from './user.controller';
 import { requireAuth } from '@shared/middleware/requireAuth';
 import { validateRequest } from '@shared/middleware/validateRequest';
-import { verifyIdentitySchema, updateSettingsSchema } from './user.dto';
+import {
+  verifyIdentitySchema,
+  updateSettingsSchema,
+  setTransactionPinSchema,
+  changeTransactionPinSchema,
+} from './user.dto';
 
 const router = Router();
 const controller = new UserController();
@@ -96,5 +101,27 @@ router.get('/settings', controller.getSettings);
  *         description: User settings updated
  */
 router.put('/settings', validateRequest(updateSettingsSchema), controller.updateSettings);
+
+/**
+ * @swagger
+ * /user/set-transaction-pin:
+ *   post:
+ *     summary: Set a 4-digit transaction PIN
+ *     security:
+ *       - bearerAuth: []
+ *     tags: [User]
+ */
+router.post('/set-transaction-pin', validateRequest(setTransactionPinSchema), controller.setTransactionPin);
+
+/**
+ * @swagger
+ * /user/change-transaction-pin:
+ *   put:
+ *     summary: Change an existing 4-digit transaction PIN
+ *     security:
+ *       - bearerAuth: []
+ *     tags: [User]
+ */
+router.put('/change-transaction-pin', validateRequest(changeTransactionPinSchema), controller.changeTransactionPin);
 
 export default router;

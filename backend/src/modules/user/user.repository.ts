@@ -1,5 +1,5 @@
 import prisma from '@infrastructure/db/prisma';
-import { Prisma, User, KycStatus, UserSettings } from '@prisma/client';
+import { Prisma, KycStatus } from '@prisma/client';
 
 export class UserRepository {
   async findProfile(userId: string) {
@@ -34,5 +34,24 @@ export class UserRepository {
       where: { userId },
       data,
     });
+  }
+
+  async findTransactionPinByUserId(userId: string) {
+    const result = await prisma.$queryRaw<Array<{ transactionPin: string | null }>>`
+      SELECT "transactionPin"
+      FROM "User"
+      WHERE "id" = ${userId}
+      LIMIT 1
+    `;
+
+    return result[0]?.transactionPin ?? null;
+  }
+
+  async updateTransactionPin(userId: string, transactionPin: string | null) {
+    await prisma.$executeRaw`
+      UPDATE "User"
+      SET "transactionPin" = ${transactionPin}
+      WHERE "id" = ${userId}
+    `;
   }
 }

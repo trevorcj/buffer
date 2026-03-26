@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { CushionController } from './cushion.controller';
 import { requireAuth } from '@shared/middleware/requireAuth';
 import { validateRequest } from '@shared/middleware/validateRequest';
-import { payBillSchema, withdrawSchema } from './cushion.dto';
+import { payBillSchema, withdrawSchema, moveToMainSchema } from './cushion.dto';
 
 const router = Router();
 const controller = new CushionController();
@@ -87,5 +87,16 @@ router.post('/withdraw', validateRequest(withdrawSchema), controller.withdraw);
  *         description: Insufficient funds or invalid biller info
  */
 router.post('/pay-bill', validateRequest(payBillSchema), controller.payBill);
+
+/**
+ * @swagger
+ * /cushion/move-to-main:
+ *   post:
+ *     summary: Move funds from cushion balance back to the main wallet
+ *     security:
+ *       - bearerAuth: []
+ *     tags: [Cushion]
+ */
+router.post('/move-to-main', validateRequest(moveToMainSchema), controller.moveToMain);
 
 export default router;

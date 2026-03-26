@@ -34,4 +34,14 @@ export class CushionController {
       res.status(400).json({ error: error.message });
     }
   };
+
+  moveToMain = async (req: AuthRequest, res: Response) => {
+    try {
+      if (!req.user) throw new Error('Unauthorized');
+      const result = await this.service.moveToMain(req.user.id, req.body);
+      res.status(200).json({ message: 'Funds moved to main wallet', wallet: result });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  };
 }
