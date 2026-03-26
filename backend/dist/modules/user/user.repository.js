@@ -37,5 +37,21 @@ class UserRepository {
             data,
         });
     }
+    async findTransactionPinByUserId(userId) {
+        const result = await prisma_1.default.$queryRaw `
+      SELECT "transactionPin"
+      FROM "User"
+      WHERE "id" = ${userId}
+      LIMIT 1
+    `;
+        return result[0]?.transactionPin ?? null;
+    }
+    async updateTransactionPin(userId, transactionPin) {
+        await prisma_1.default.$executeRaw `
+      UPDATE "User"
+      SET "transactionPin" = ${transactionPin}
+      WHERE "id" = ${userId}
+    `;
+    }
 }
 exports.UserRepository = UserRepository;

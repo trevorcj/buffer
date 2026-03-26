@@ -83,4 +83,14 @@ router.post('/withdraw', (0, validateRequest_1.validateRequest)(cushion_dto_1.wi
  *         description: Insufficient funds or invalid biller info
  */
 router.post('/pay-bill', (0, validateRequest_1.validateRequest)(cushion_dto_1.payBillSchema), controller.payBill);
+/**
+ * @swagger
+ * /cushion/move-to-main:
+ *   post:
+ *     summary: Move funds from cushion balance back to the main wallet
+ *     security:
+ *       - bearerAuth: []
+ *     tags: [Cushion]
+ */
+router.post('/move-to-main', (0, validateRequest_1.validateRequest)(cushion_dto_1.moveToMainSchema), controller.moveToMain);
 exports.default = router;
