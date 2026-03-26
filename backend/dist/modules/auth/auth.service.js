@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
 const auth_repository_1 = require("./auth.repository");
-const password_1 = require("@shared/utils/password");
-const jwt_1 = require("@shared/utils/jwt");
+const password_1 = require("../../shared/utils/password");
+const jwt_1 = require("../../shared/utils/jwt");
 class AuthService {
     repository = new auth_repository_1.AuthRepository();
     async register(dto) {

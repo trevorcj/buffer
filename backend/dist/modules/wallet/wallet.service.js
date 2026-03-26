@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.WalletService = void 0;
 const wallet_repository_1 = require("./wallet.repository");
 const ledger_service_1 = require("./ledger.service");
-const prisma_1 = __importDefault(require("@infrastructure/db/prisma"));
+const prisma_1 = __importDefault(require("../../infrastructure/db/prisma"));
 const client_1 = require("@prisma/client");
 class WalletService {
     repository = new wallet_repository_1.WalletRepository();

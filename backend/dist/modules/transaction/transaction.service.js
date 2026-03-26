@@ -4,9 +4,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TransactionService = void 0;
-const prisma_1 = __importDefault(require("@infrastructure/db/prisma"));
-const interswitch_service_1 = require("@modules/interswitch/interswitch.service");
-const ledger_service_1 = require("@modules/wallet/ledger.service");
+const prisma_1 = __importDefault(require("../../infrastructure/db/prisma"));
+const interswitch_service_1 = require("../interswitch/interswitch.service");
+const ledger_service_1 = require("../wallet/ledger.service");
 const client_1 = require("@prisma/client");
 class TransactionService {
     interswitch = new interswitch_service_1.InterswitchClient();

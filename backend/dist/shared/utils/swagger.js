@@ -15,8 +15,12 @@ const options = {
         },
         servers: [
             {
-                url: 'http://localhost:3000',
-                description: 'Development server',
+                url: 'https://buffer-0sox.onrender.com',
+                description: 'Requested / Render Server',
+            },
+            {
+                url: 'http://localhost:8081',
+                description: 'Local Development Server',
             },
         ],
         components: {

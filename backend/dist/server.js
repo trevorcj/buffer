@@ -5,8 +5,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv/config");
 const app_1 = __importDefault(require("./app"));
-const prisma_1 = __importDefault(require("@infrastructure/db/prisma"));
+const prisma_1 = __importDefault(require("./infrastructure/db/prisma"));
 const PORT = process.env.PORT || 3000;
+console.log('Starting with DB:', process.env.DATABASE_URL);
 const startServer = async () => {
     try {
         // Attempt DB connection to ensure DB is up

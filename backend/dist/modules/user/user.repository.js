@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserRepository = void 0;
-const prisma_1 = __importDefault(require("@infrastructure/db/prisma"));
+const prisma_1 = __importDefault(require("../../infrastructure/db/prisma"));
 const client_1 = require("@prisma/client");
 class UserRepository {
     async findProfile(userId) {

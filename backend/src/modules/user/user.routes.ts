@@ -57,7 +57,7 @@ router.post('/verify-identity', validateRequest(verifyIdentitySchema), controlle
 
 /**
  * @swagger
- * /settings:
+ * /user/settings:
  *   get:
  *     summary: Get user settings
  *     security:
@@ -71,7 +71,7 @@ router.get('/settings', controller.getSettings);
 
 /**
  * @swagger
- * /settings:
+ * /user/settings:
  *   put:
  *     summary: Update user settings
  *     security:
