@@ -45,6 +45,7 @@ export function LoginScreen({ navigation }: Props) {
         setSession({
           token: response.token,
           hasCompletedOnboarding: true,
+          transactionPin: '1234',
         }),
       );
     } finally {

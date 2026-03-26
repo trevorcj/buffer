@@ -9,11 +9,16 @@ import { CircleIconButton } from '../../components/CircleIconButton';
 import { InsightsIllustration } from '../../components/PlaceholderIllustrations';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { toggleCardDetailsVisibility } from '../../store/slices/bufferSlice';
+import { replaceBufferState, toggleCardDetailsVisibility } from '../../store/slices/bufferSlice';
 import { colors } from '../../theme/colors';
 import { radii, spacing } from '../../theme/spacing';
-import { showComingSoonAlert } from '../../utils/alerts';
-import { formatCurrency } from '../../utils/format';
+import {
+  formatCurrency,
+  getBufferedLast30DaysLabel,
+  getBufferedLast30DaysTotal,
+} from '../../utils/format';
+import { moveCushionToMain, toggleCardStatus } from '../../services/bufferApi';
+import { useMemo, useState } from 'react';
 
 function InfoRow({
   label,
@@ -51,7 +56,9 @@ function InfoRow({
 
 export function CardScreen() {
   const dispatch = useAppDispatch();
+  const token = useAppSelector((state) => state.auth.token);
   const { cards, settings, wallet, isCardDetailsVisible } = useAppSelector((state) => state.buffer);
+  const bufferState = useAppSelector((state) => state.buffer);
   const card = cards[0] ?? {
     id: 'placeholder-card',
     maskedPan: '4000 •••• •••• 2503',
@@ -67,6 +74,63 @@ export function CardScreen() {
     ? card.accountName
     : `${card.accountName.slice(0, Math.min(5, card.accountName.length))}••••••`;
   const cvv = isCardDetailsVisible ? card.cvv : '•••';
+  const [isTogglingCard, setIsTogglingCard] = useState(false);
+  const [isMovingFunds, setIsMovingFunds] = useState(false);
+  const bufferedLast30Days = useMemo(
+    () => getBufferedLast30DaysTotal(wallet.bufferedLast30Days, bufferState.transactions),
+    [bufferState.transactions, wallet.bufferedLast30Days],
+  );
+  const bufferedLabel = useMemo(
+    () => getBufferedLast30DaysLabel(bufferedLast30Days),
+    [bufferedLast30Days],
+  );
+
+  const handleToggleCard = async () => {
+    if (!token || card.id === 'placeholder-card' || isTogglingCard) {
+      return;
+    }
+
+    setIsTogglingCard(true);
+
+    try {
+      const nextState = await toggleCardStatus(token, bufferState, card.id);
+      dispatch(replaceBufferState(nextState));
+      Alert.alert(
+        card.status === 'ACTIVE' ? 'Card frozen' : 'Card active',
+        card.status === 'ACTIVE'
+          ? 'Your Buffer card has been frozen.'
+          : 'Your Buffer card is active again.',
+      );
+    } catch (error) {
+      Alert.alert(
+        'Unable to update card',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    } finally {
+      setIsTogglingCard(false);
+    }
+  };
+
+  const handleMoveToMain = async () => {
+    if (!token || isMovingFunds) {
+      return;
+    }
+
+    setIsMovingFunds(true);
+
+    try {
+      const nextState = await moveCushionToMain(token, bufferState);
+      dispatch(replaceBufferState(nextState));
+      Alert.alert('Moved to main balance', 'Your cushion funds are now back in your main balance.');
+    } catch (error) {
+      Alert.alert(
+        'Unable to move funds',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    } finally {
+      setIsMovingFunds(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -95,12 +159,34 @@ export function CardScreen() {
           <InfoRow label="Account Name" value={accountName} />
           <InfoRow label="Expiry Date" value={card.expiryDate} />
           <InfoRow label="CVV" value={cvv} />
+          <View style={styles.statusRow}>
+            <AppText color={colors.gray} style={styles.infoLabel} weight="medium">
+              Card Status
+            </AppText>
+            <AppText style={styles.statusValue} weight="semibold">
+              {card.status}
+            </AppText>
+          </View>
+          <PrimaryButton
+            label={
+              isTogglingCard
+                ? card.status === 'ACTIVE'
+                  ? 'Freezing...'
+                  : 'Unfreezing...'
+                : card.status === 'ACTIVE'
+                  ? 'Freeze card'
+                  : 'Unfreeze card'
+            }
+            onPress={handleToggleCard}
+            style={styles.freezeButton}
+            variant={card.status === 'ACTIVE' ? 'outline' : 'primary'}
+          />
         </View>
 
         <View style={styles.lowerPanel}>
           <View style={styles.amountBlock}>
             <AppText color={colors.gray} style={styles.amountLabel} weight="bold">
-              BUFFER AMOUNT
+              BUFFER BALANCE
             </AppText>
             <AppText
               adjustsFontSizeToFit
@@ -112,20 +198,12 @@ export function CardScreen() {
             </AppText>
           </View>
 
-          <View style={styles.buttonRow}>
-            <PrimaryButton
-              label="Cash out"
-              onPress={() => showComingSoonAlert('Cash out flow will be connected when the API is ready.')}
-              style={styles.rowButton}
-              variant="outline"
-            />
-            <PrimaryButton
-              label="Pay Bills"
-              onPress={() => showComingSoonAlert('Bill payment flow will be connected when the API is ready.')}
-              style={styles.rowButton}
-              variant="outline"
-            />
-          </View>
+          <PrimaryButton
+            label={isMovingFunds ? 'Moving...' : 'Move to main balance'}
+            onPress={handleMoveToMain}
+            style={styles.singleButton}
+            variant="outline"
+          />
 
           <View style={styles.insightCard}>
             <View style={styles.insightIcon}>
@@ -136,7 +214,7 @@ export function CardScreen() {
                 INSIGHTS
               </AppText>
               <AppText style={styles.insightTitle} weight="bold">
-                This card has helped you save {formatCurrency(wallet.bufferedLast30Days, 0)} in 30 days
+                {bufferedLabel}
               </AppText>
             </View>
           </View>
@@ -207,6 +285,19 @@ const styles = StyleSheet.create({
   copyButton: {
     padding: 2,
   },
+  statusRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: spacing.sm,
+  },
+  statusValue: {
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  freezeButton: {
+    marginTop: spacing.lg,
+  },
   lowerPanel: {
     marginTop: spacing.xl,
     marginHorizontal: -spacing.lg,
@@ -229,13 +320,8 @@ const styles = StyleSheet.create({
     lineHeight: 38,
     letterSpacing: -1.2,
   },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
+  singleButton: {
     marginTop: spacing.xl,
-  },
-  rowButton: {
-    flex: 1,
   },
   insightCard: {
     flexDirection: 'row',

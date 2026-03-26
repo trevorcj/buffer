@@ -1,4 +1,7 @@
-import { IllustrationAsset } from "./IllustrationAsset";
+import AgbaArt from '../../assets/agbaIllustration.svg';
+import InsightsArt from '../../assets/insights-illustration.svg';
+import TipArt from '../../assets/tip-illustration.svg';
+import YakubuArt from '../../assets/yakubuIllustration.svg';
 
 type IllustrationProps = {
   height: number;
@@ -6,37 +9,17 @@ type IllustrationProps = {
 };
 
 export function AgbaIllustration(props: IllustrationProps) {
-  return (
-    <IllustrationAsset
-      source={require("../../assets/agbaIllustration.svg")}
-      {...props}
-    />
-  );
+  return <AgbaArt {...props} />;
 }
 
 export function YakubuIllustration(props: IllustrationProps) {
-  return (
-    <IllustrationAsset
-      source={require("../../assets/yakubuIllustration.svg")}
-      {...props}
-    />
-  );
+  return <YakubuArt {...props} />;
 }
 
 export function TipIllustration(props: IllustrationProps) {
-  return (
-    <IllustrationAsset
-      source={require("../../assets/tip-illustration.svg")}
-      {...props}
-    />
-  );
+  return <TipArt {...props} />;
 }
 
 export function InsightsIllustration(props: IllustrationProps) {
-  return (
-    <IllustrationAsset
-      source={require("../../assets/insights-illustration.svg")}
-      {...props}
-    />
-  );
+  return <InsightsArt {...props} />;
 }

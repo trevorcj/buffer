@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Alert, FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { useNavigation } from '@react-navigation/native';
@@ -15,7 +15,12 @@ import { toggleBalanceVisibility } from '../../store/slices/bufferSlice';
 import { colors } from '../../theme/colors';
 import { radii, spacing } from '../../theme/spacing';
 import { showComingSoonAlert } from '../../utils/alerts';
-import { formatCurrency } from '../../utils/format';
+import {
+  getBufferBalanceLabel,
+  formatCurrency,
+  getBufferedLast30DaysLabel,
+  getBufferedLast30DaysTotal,
+} from '../../utils/format';
 
 function ActionPill({
   icon,
@@ -49,9 +54,17 @@ export function HomeScreen() {
   } = useAppSelector((state) => state.buffer);
 
   const latestTransactions = useMemo(() => transactions.slice(0, 2), [transactions]);
+  const bufferedLast30Days = useMemo(
+    () => getBufferedLast30DaysTotal(wallet.bufferedLast30Days, transactions),
+    [transactions, wallet.bufferedLast30Days],
+  );
   const bufferedLabel = useMemo(
-    () => `You buffered ${formatCurrency(wallet.bufferedLast30Days, 0)} in the last 30 days`,
-    [wallet.bufferedLast30Days],
+    () => getBufferedLast30DaysLabel(bufferedLast30Days),
+    [bufferedLast30Days],
+  );
+  const bufferBalanceLabel = useMemo(
+    () => getBufferBalanceLabel(wallet.cushionBalance),
+    [wallet.cushionBalance],
   );
 
   return (
@@ -59,7 +72,7 @@ export function HomeScreen() {
       <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View style={styles.headerRow}>
-            <View style={styles.profileRow}>
+            <Pressable onPress={() => navigation.navigate('SettingsTab')} style={styles.profileRow}>
               <View style={styles.avatar}>
                 <AppText style={styles.avatarLabel} weight="bold">
                   {profile.avatarLabel}
@@ -73,7 +86,7 @@ export function HomeScreen() {
                   Great day to save innit? 😊
                 </AppText>
               </View>
-            </View>
+            </Pressable>
 
             <CircleIconButton onPress={() => showComingSoonAlert('Notifications will appear here later.')}>
               <Feather color={colors.black} name="bell" size={18} />
@@ -93,29 +106,20 @@ export function HomeScreen() {
 
           <View style={styles.bufferedBadge}>
             <AppText color={colors.success} style={styles.bufferedText} weight="semibold">
-              ↗ {formatCurrency(wallet.bufferedLast30Days, 0)} buffered
+              {bufferBalanceLabel}
             </AppText>
           </View>
 
           <View style={styles.actionRow}>
             <ActionPill
               icon={<MaterialCommunityIcons color={colors.black} name="bank-transfer-in" size={16} />}
-              label="Deposit"
-              onPress={() => showComingSoonAlert('Deposit flow will be connected when the API is ready.')}
+              label="Add Money"
+              onPress={() => navigation.getParent()?.navigate('FundWallet')}
             />
             <ActionPill
-              icon={<MaterialCommunityIcons color={colors.black} name="bank-transfer-out" size={16} />}
-              label="Withdraw"
-              onPress={() =>
-                wallet.cushionBalance > 0
-                  ? showComingSoonAlert('Withdraw flow will be connected when the API is ready.')
-                  : Alert.alert('Nothing to withdraw', 'Your cushion balance is currently zero.')
-              }
-            />
-            <ActionPill
-              icon={<Ionicons color={colors.black} name="wallet-outline" size={15} />}
-              label="Pay Bills"
-              onPress={() => showComingSoonAlert('Bill payments will be connected when the API is ready.')}
+              icon={<Ionicons color={colors.black} name="card-outline" size={15} />}
+              label="Send Money"
+              onPress={() => navigation.getParent()?.navigate('SendMoney')}
             />
           </View>
         </View>

@@ -1,4 +1,4 @@
-import { SavingMode } from '../types/domain';
+import { BufferTransaction, SavingMode } from '../types/domain';
 
 export function formatCurrency(amount: number, fractionDigits = 2) {
   const sign = amount < 0 ? '-' : '';
@@ -46,4 +46,32 @@ export function getModeDescription(mode: SavingMode, value: number) {
   }
 
   return `We'll round each transaction to the nearest ${formatCurrency(value, 0)} and move the difference to your cushion`;
+}
+
+export function getBufferedLast30DaysLabel(total: number) {
+  return `You buffered ${formatCurrency(total, 0)} in the last 30 days`;
+}
+
+export function getBufferBalanceLabel(total: number) {
+  return `Buffer balance: ${formatCurrency(total, 0)}`;
+}
+
+export function getBufferedLast30DaysTotal(
+  walletBufferedLast30Days: number,
+  transactions: BufferTransaction[],
+) {
+  const now = Date.now();
+  const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+
+  const transactionBasedTotal = transactions.reduce((total, transaction) => {
+    const timestamp = new Date(transaction.createdAt).getTime();
+
+    if (Number.isNaN(timestamp) || timestamp < thirtyDaysAgo || timestamp > now) {
+      return total;
+    }
+
+    return total + transaction.savedAmount;
+  }, 0);
+
+  return transactionBasedTotal > 0 ? transactionBasedTotal : walletBufferedLast30Days;
 }

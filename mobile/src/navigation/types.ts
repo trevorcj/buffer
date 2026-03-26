@@ -6,6 +6,7 @@ export type GuestStackParamList = {
 
 export type SetupStackParamList = {
   Identity: undefined;
+  PinSetup: undefined;
   ChooseMode: undefined;
   Preview: undefined;
   Activation: undefined;
@@ -23,4 +24,9 @@ export type AppStackParamList = {
   TransactionDetail: {
     transactionId: string;
   };
+  ChangeCardPin: undefined;
+  FundWallet: undefined;
+  SendMoney: undefined;
+  WithdrawCushion: undefined;
+  PayBill: undefined;
 };

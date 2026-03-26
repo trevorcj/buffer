@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,14 +12,41 @@ import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { completeOnboarding } from '../../store/slices/authSlice';
-import { commitDraftSettings } from '../../store/slices/bufferSlice';
+import { replaceBufferState } from '../../store/slices/bufferSlice';
+import { completeSetup } from '../../services/bufferApi';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'Activation'>;
 
 export function ActivationScreen({ navigation }: Props) {
   const dispatch = useAppDispatch();
+  const token = useAppSelector((state) => state.auth.token);
+  const bufferState = useAppSelector((state) => state.buffer);
   const draftSettings = useAppSelector((state) => state.buffer.draftSettings);
-  const card = useAppSelector((state) => state.buffer.cards[0]);
+  const card = useAppSelector((state) => state.buffer.cards[0]) ?? {
+    fullPan: '4000 0000 0000 2503',
+  };
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleStartSpending = async () => {
+    if (!token) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const nextState = await completeSetup(token, bufferState);
+      dispatch(replaceBufferState(nextState));
+      dispatch(completeOnboarding());
+    } catch (error) {
+      Alert.alert(
+        'Activation failed',
+        error instanceof Error ? error.message : 'We could not complete setup right now.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -51,11 +79,9 @@ export function ActivationScreen({ navigation }: Props) {
 
       <View style={styles.footer}>
         <PrimaryButton
-          label="Start spending"
-          onPress={() => {
-            dispatch(commitDraftSettings());
-            dispatch(completeOnboarding());
-          }}
+          disabled={isSubmitting}
+          label={isSubmitting ? 'Activating...' : 'Start spending'}
+          onPress={handleStartSpending}
         />
       </View>
     </SafeAreaView>

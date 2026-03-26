@@ -65,6 +65,24 @@ export function TransactionDetailScreen({ navigation, route }: Props) {
   }
 
   const isSpotify = transaction.icon === 'spotify';
+  const isIncomingBufferAction = transaction.icon === 'buffer_in';
+  const isOutgoingBufferAction = transaction.icon === 'buffer_out';
+  const isSpendAction = transaction.icon === 'buffer_spend';
+  const isAddMoneyAction = transaction.icon === 'buffer_add_money';
+  const isUtilityAction = transaction.icon === 'buffer_utility';
+  const isBufferAction =
+    isIncomingBufferAction ||
+    isOutgoingBufferAction ||
+    isSpendAction ||
+    isAddMoneyAction ||
+    isUtilityAction;
+  const isIncomingAmount = transaction.icon === 'buffer_in' || transaction.icon === 'buffer_add_money';
+  const statusLabel =
+    transaction.status === 'FAILED'
+      ? 'Failed'
+      : transaction.status === 'PENDING'
+        ? 'Pending'
+        : 'Successful';
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -79,8 +97,27 @@ export function TransactionDetailScreen({ navigation, route }: Props) {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
-          <View style={[styles.iconWrap, isSpotify ? styles.spotifyWrap : styles.shoppingWrap]}>
-            {isSpotify ? (
+          <View
+            style={[
+              styles.iconWrap,
+              isBufferAction ? styles.bufferWrap : isSpotify ? styles.spotifyWrap : styles.shoppingWrap,
+            ]}
+          >
+            {isBufferAction ? (
+              isAddMoneyAction ? (
+                <Feather color={colors.secondary} name="plus-circle" size={28} />
+              ) : isSpendAction ? (
+                <Feather color={colors.secondary} name="shopping-bag" size={28} />
+              ) : isUtilityAction ? (
+                <MaterialIcons color={colors.secondary} name="bolt" size={30} />
+              ) : (
+                <Feather
+                  color={colors.secondary}
+                  name={isIncomingBufferAction ? 'arrow-down-left' : 'arrow-up-right'}
+                  size={28}
+                />
+              )
+            ) : isSpotify ? (
               <FontAwesome5 color="#1DB954" name="spotify" size={28} />
             ) : (
               <MaterialIcons color="#F4A63C" name="stars" size={28} />
@@ -89,10 +126,15 @@ export function TransactionDetailScreen({ navigation, route }: Props) {
           <AppText style={styles.merchantTitle} weight="semibold">
             {transaction.merchantName}
           </AppText>
-          <AppText style={styles.amount} weight="extrabold">
+          <AppText
+            color={transaction.status === 'FAILED' ? colors.danger : isIncomingAmount ? colors.success : colors.black}
+            style={styles.amount}
+            weight="extrabold"
+          >
+            {isIncomingAmount ? '+' : '-'}
             {formatCurrency(transaction.amount)}
           </AppText>
-          <StatusPill label="Successful" />
+          <StatusPill label={statusLabel} status={transaction.status} />
         </View>
 
         <View style={styles.divider} />
@@ -102,7 +144,8 @@ export function TransactionDetailScreen({ navigation, route }: Props) {
             Transaction Details
           </AppText>
           <View style={styles.rows}>
-            <DetailRow label="Status" value="Completed" />
+            <DetailRow label="Status" value={statusLabel} />
+            {transaction.note ? <DetailRow label="Note" value={transaction.note} /> : null}
             <DetailRow label="Amount" value={formatCurrency(transaction.amount)} />
             <DetailRow label="Saved" value={formatCurrency(transaction.savedAmount)} />
             <DetailRow label="Recipient" value={transaction.recipient} />
@@ -165,6 +208,9 @@ const styles = StyleSheet.create({
   },
   shoppingWrap: {
     backgroundColor: '#FFF2E0',
+  },
+  bufferWrap: {
+    backgroundColor: colors.primary,
   },
   merchantTitle: {
     fontSize: 17,

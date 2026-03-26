@@ -3,13 +3,26 @@ import { Feather } from '@expo/vector-icons';
 
 import { colors } from '../theme/colors';
 import { radii, spacing } from '../theme/spacing';
+import { TransactionStatus } from '../types/domain';
 import { AppText } from './AppText';
 
-export function StatusPill({ label }: { label: string }) {
+export function StatusPill({
+  label,
+  status = 'SUCCESS',
+}: {
+  label: string;
+  status?: TransactionStatus;
+}) {
+  const isFailed = status === 'FAILED';
+  const isPending = status === 'PENDING';
+  const iconName = isFailed ? 'x-circle' : isPending ? 'clock' : 'check-circle';
+  const tintColor = isFailed ? colors.danger : isPending ? colors.gray : colors.success;
+  const backgroundColor = isFailed ? '#FFF0EF' : isPending ? '#F3F4F6' : colors.successTint;
+
   return (
-    <View style={styles.container}>
-      <Feather color={colors.success} name="check-circle" size={12} />
-      <AppText color={colors.success} style={styles.label} weight="semibold">
+    <View style={[styles.container, { backgroundColor }]}>
+      <Feather color={tintColor} name={iconName} size={12} />
+      <AppText color={tintColor} style={styles.label} weight="semibold">
         {label}
       </AppText>
     </View>

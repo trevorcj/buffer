@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+import { Feather, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 
 import { BufferTransaction } from '../types/domain';
 import { colors } from '../theme/colors';
@@ -15,11 +15,42 @@ interface TransactionRowProps {
 
 function TransactionRowComponent({ transaction, onPress }: TransactionRowProps) {
   const isSpotify = transaction.icon === 'spotify';
+  const isIncomingBufferAction = transaction.icon === 'buffer_in';
+  const isOutgoingBufferAction = transaction.icon === 'buffer_out';
+  const isSpendAction = transaction.icon === 'buffer_spend';
+  const isAddMoneyAction = transaction.icon === 'buffer_add_money';
+  const isUtilityAction = transaction.icon === 'buffer_utility';
+  const isBufferAction =
+    isIncomingBufferAction ||
+    isOutgoingBufferAction ||
+    isSpendAction ||
+    isAddMoneyAction ||
+    isUtilityAction;
+  const isIncomingAmount = transaction.icon === 'buffer_in' || transaction.icon === 'buffer_add_money';
 
   return (
     <Pressable disabled={!onPress} onPress={onPress} style={styles.row}>
-      <View style={[styles.iconWrap, isSpotify ? styles.spotifyWrap : styles.shoppingWrap]}>
-        {isSpotify ? (
+      <View
+        style={[
+          styles.iconWrap,
+          isBufferAction ? styles.bufferWrap : isSpotify ? styles.spotifyWrap : styles.shoppingWrap,
+        ]}
+      >
+        {isBufferAction ? (
+          isAddMoneyAction ? (
+            <Feather color={colors.secondary} name="plus-circle" size={16} />
+          ) : isSpendAction ? (
+            <Feather color={colors.secondary} name="shopping-bag" size={16} />
+          ) : isUtilityAction ? (
+            <MaterialIcons color={colors.secondary} name="bolt" size={18} />
+          ) : (
+            <Feather
+              color={colors.secondary}
+              name={isIncomingBufferAction ? 'arrow-down-left' : 'arrow-up-right'}
+              size={16}
+            />
+          )
+        ) : isSpotify ? (
           <FontAwesome5 color="#1DB954" name="spotify" size={16} />
         ) : (
           <MaterialIcons color="#F4A63C" name="stars" size={17} />
@@ -33,10 +64,20 @@ function TransactionRowComponent({ transaction, onPress }: TransactionRowProps) 
           <AppText color={colors.gray} numberOfLines={1} style={styles.subtitle} weight="medium">
             {transaction.merchantSubtitle}
           </AppText>
+          {transaction.note ? (
+            <AppText color={colors.gray} style={styles.note} weight="medium">
+              {transaction.note}
+            </AppText>
+          ) : null}
         </View>
         <View style={styles.amountWrap}>
-          <AppText color={colors.danger} style={styles.amount} weight="semibold">
-            -{formatCurrency(transaction.amount)}
+          <AppText
+            color={isIncomingAmount ? colors.success : colors.danger}
+            style={styles.amount}
+            weight="semibold"
+          >
+            {isIncomingAmount ? '+' : '-'}
+            {formatCurrency(transaction.amount)}
           </AppText>
           <AppText color={colors.success} style={styles.saved} weight="semibold">
             ↗ {formatCurrency(transaction.savedAmount)}
@@ -69,6 +110,9 @@ const styles = StyleSheet.create({
   spotifyWrap: {
     backgroundColor: '#E5F8EA',
   },
+  bufferWrap: {
+    backgroundColor: colors.primary,
+  },
   content: {
     flex: 1,
     flexDirection: 'row',
@@ -86,6 +130,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 12,
     lineHeight: 16,
+  },
+  note: {
+    marginTop: 4,
+    fontSize: 11,
+    lineHeight: 15,
+    maxWidth: 220,
   },
   amountWrap: {
     alignItems: 'flex-end',

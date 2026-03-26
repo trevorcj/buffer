@@ -44,7 +44,14 @@ export interface BufferTransaction {
   id: string;
   merchantName: string;
   merchantSubtitle: string;
-  icon: 'shopping' | 'spotify';
+  icon:
+    | 'shopping'
+    | 'spotify'
+    | 'buffer_in'
+    | 'buffer_out'
+    | 'buffer_spend'
+    | 'buffer_add_money'
+    | 'buffer_utility';
   amount: number;
   savedAmount: number;
   status: TransactionStatus;
@@ -54,4 +61,5 @@ export interface BufferTransaction {
   paymentMethod: string;
   createdAt: string;
   dateLabel: string;
+  note?: string;
 }

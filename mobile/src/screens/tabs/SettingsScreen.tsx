@@ -1,34 +1,71 @@
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '../../components/AppText';
 import { ModeOptionCard } from '../../components/ModeOptionCard';
 import { ModeSlider } from '../../components/ModeSlider';
-import { TipIllustration } from '../../components/PlaceholderIllustrations';
+import { PrimaryButton } from '../../components/PrimaryButton';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
-import { resetBufferState, updateSavingSettings } from '../../store/slices/bufferSlice';
+import { replaceBufferState, resetBufferState } from '../../store/slices/bufferSlice';
 import { colors } from '../../theme/colors';
 import { radii, spacing } from '../../theme/spacing';
 import { SavingMode, UserSettings } from '../../types/domain';
 import { getModeDescription } from '../../utils/format';
+import { saveSettings } from '../../services/bufferApi';
 
 export function SettingsScreen() {
+  const navigation = useNavigation<any>();
   const dispatch = useAppDispatch();
+  const token = useAppSelector((state) => state.auth.token);
+  const bufferState = useAppSelector((state) => state.buffer);
   const { profile, settings } = useAppSelector((state) => state.buffer);
+  const [draftSettings, setDraftSettings] = useState(settings);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const updateSettings = (nextMode: SavingMode, nextValue: number) => {
-    const nextSettings: UserSettings = {
+  useEffect(() => {
+    setDraftSettings(settings);
+  }, [settings]);
+
+  const updateDraftSettings = (nextMode: SavingMode, nextValue: number) => {
+    setDraftSettings((currentSettings) => ({
       savingMode: nextMode,
-      percentage: nextMode === 'AGBA' ? nextValue : settings.percentage,
-      roundUpThreshold: nextMode === 'YAKUBU' ? nextValue : settings.roundUpThreshold,
-    };
-
-    dispatch(updateSavingSettings(nextSettings));
+      percentage: nextMode === 'AGBA' ? nextValue : currentSettings.percentage,
+      roundUpThreshold: nextMode === 'YAKUBU' ? nextValue : currentSettings.roundUpThreshold,
+    }));
   };
 
   const configureValue =
-    settings.savingMode === 'AGBA' ? settings.percentage : settings.roundUpThreshold;
+    draftSettings.savingMode === 'AGBA' ? draftSettings.percentage : draftSettings.roundUpThreshold;
+
+  const hasChanges =
+    draftSettings.savingMode !== settings.savingMode ||
+    draftSettings.percentage !== settings.percentage ||
+    draftSettings.roundUpThreshold !== settings.roundUpThreshold;
+
+  const handleSaveChanges = async () => {
+    if (!token || !hasChanges || isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const nextState = await saveSettings(token, bufferState, draftSettings);
+      dispatch(replaceBufferState(nextState));
+      Alert.alert('Settings updated', 'Your Buffer mode has been updated.');
+    } catch (error) {
+      Alert.alert(
+        'Unable to update settings',
+        error instanceof Error ? error.message : 'Please try again.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleSignOut = () => {
     Alert.alert('Sign out', 'You will return to the welcome screen.', [
@@ -69,15 +106,15 @@ export function SettingsScreen() {
           <View style={styles.options}>
             <ModeOptionCard
               mode="YAKUBU"
-              onPress={() => updateSettings('YAKUBU', settings.roundUpThreshold)}
-              selected={settings.savingMode === 'YAKUBU'}
+              onPress={() => updateDraftSettings('YAKUBU', draftSettings.roundUpThreshold)}
+              selected={draftSettings.savingMode === 'YAKUBU'}
               subtitle="Round up your spending automatically"
               title="Yakubu Mode"
             />
             <ModeOptionCard
               mode="AGBA"
-              onPress={() => updateSettings('AGBA', settings.percentage)}
-              selected={settings.savingMode === 'AGBA'}
+              onPress={() => updateDraftSettings('AGBA', draftSettings.percentage)}
+              selected={draftSettings.savingMode === 'AGBA'}
               subtitle="Save a percentage on every spend"
               title="Agba Mode"
             />
@@ -89,35 +126,44 @@ export function SettingsScreen() {
             Configure Mode
           </AppText>
           <AppText color={colors.gray} style={styles.sectionSubtitle} weight="medium">
-            {settings.savingMode === 'AGBA'
+            {draftSettings.savingMode === 'AGBA'
               ? 'Set your preferred percentage threshold'
               : 'Set your preferred round up threshold'}
           </AppText>
 
           <ModeSlider
-            mode={settings.savingMode}
-            onValueChange={(value) => updateSettings(settings.savingMode, value)}
-            value={settings.savingMode === 'AGBA' ? settings.percentage : settings.roundUpThreshold}
+            mode={draftSettings.savingMode}
+            onValueChange={(value) => updateDraftSettings(draftSettings.savingMode, value)}
+            value={
+              draftSettings.savingMode === 'AGBA'
+                ? draftSettings.percentage
+                : draftSettings.roundUpThreshold
+            }
           />
 
           <AppText color={colors.gray} style={styles.helperText} weight="medium">
-            {getModeDescription(settings.savingMode, configureValue)}
+            {getModeDescription(draftSettings.savingMode, configureValue)}
           </AppText>
+
+          <PrimaryButton
+            disabled={!hasChanges || isSubmitting}
+            label={isSubmitting ? 'Saving...' : 'Save changes'}
+            onPress={handleSaveChanges}
+            style={styles.saveButton}
+          />
         </View>
 
-        <View style={styles.tipCard}>
-          <View style={styles.tipIcon}>
-            <TipIllustration height={52} width={52} />
-          </View>
-          <View style={styles.tipCopy}>
-            <AppText color={colors.gray} style={styles.tipLabel} weight="bold">
-              TIP
+        <Pressable onPress={() => navigation.getParent()?.navigate('ChangeCardPin')} style={styles.linkRow}>
+          <View>
+            <AppText style={styles.linkTitle} weight="semibold">
+              Change card PIN
             </AppText>
-            <AppText style={styles.tipTitle} weight="bold">
-              Add ₦2,000 extra to keep Buffer active
+            <AppText color={colors.gray} style={styles.linkCopy} weight="medium">
+              Update the 4-digit PIN you use to confirm transfers.
             </AppText>
           </View>
-        </View>
+          <Feather color={colors.gray} name="chevron-right" size={18} />
+        </Pressable>
 
         <Pressable onPress={handleSignOut} style={styles.signOutButton}>
           <AppText color={colors.danger} style={styles.signOutText} weight="semibold">
@@ -185,33 +231,29 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     maxWidth: 400,
   },
-  tipCard: {
+  saveButton: {
+    marginTop: spacing.xl,
+  },
+  linkRow: {
+    marginTop: spacing.xl,
+    paddingVertical: spacing.lg,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: spacing.md,
-    marginTop: 46,
-    borderRadius: radii.md,
-    backgroundColor: '#F4F4F1',
-    padding: spacing.lg,
   },
-  tipIcon: {
-    height: 52,
-    width: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  tipCopy: {
-    flex: 1,
-  },
-  tipLabel: {
-    fontSize: 10,
-    lineHeight: 14,
-  },
-  tipTitle: {
-    marginTop: 2,
+  linkTitle: {
     fontSize: 15,
-    lineHeight: 21,
+    lineHeight: 20,
+  },
+  linkCopy: {
+    marginTop: 4,
+    fontSize: 13,
+    lineHeight: 18,
+    maxWidth: 260,
   },
   signOutButton: {
     marginTop: 18,

@@ -3,7 +3,7 @@ import { useWindowDimensions, StyleSheet, View } from 'react-native';
 import { colors } from '../theme/colors';
 import { radii, spacing } from '../theme/spacing';
 import { AppText } from './AppText';
-import { IllustrationAsset } from './IllustrationAsset';
+import BufferCardArt from '../../assets/buffer-card.svg';
 
 interface BufferCardProps {
   variant: 'preview' | 'full';
@@ -51,11 +51,10 @@ export function BufferCard({
 
   return (
     <View style={[styles.fullCardWrap, { height: cardHeight, width: cardWidth }]}>
-      <IllustrationAsset
+      <BufferCardArt
         height={cardHeight}
-        source={require('../../assets/buffer-card.svg')}
-        width={cardWidth}
         style={styles.fullCardArt}
+        width={cardWidth}
       />
       <View style={styles.modeChip}>
         <AppText color={colors.secondary} style={styles.modeChipLabel} weight="bold">

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -9,15 +9,17 @@ import { TextField } from '../../components/TextField';
 import { SetupStackParamList } from '../../navigation/types';
 import { colors } from '../../theme/colors';
 import { radii, spacing } from '../../theme/spacing';
-import { mockApi } from '../../services/mockApi';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
-import { updateProfileIdentity } from '../../store/slices/bufferSlice';
+import { replaceBufferState } from '../../store/slices/bufferSlice';
+import { verifyIdentity } from '../../services/bufferApi';
 
 type IdentityType = 'BVN' | 'NIN';
 type Props = NativeStackScreenProps<SetupStackParamList, 'Identity'>;
 
 export function IdentityVerificationScreen({ navigation }: Props) {
   const dispatch = useAppDispatch();
+  const token = useAppSelector((state) => state.auth.token);
+  const bufferState = useAppSelector((state) => state.buffer);
   const profile = useAppSelector((state) => state.buffer.profile);
   const [identityType, setIdentityType] = useState<IdentityType>('BVN');
   const [identityValue, setIdentityValue] = useState(profile.bvn ?? '');
@@ -26,16 +28,24 @@ export function IdentityVerificationScreen({ navigation }: Props) {
   const isDisabled = !identityValue.trim() || isSubmitting;
 
   const handleContinue = async () => {
-    setIsSubmitting(true);
+    if (!token) {
+      return;
+    }
 
+    setIsSubmitting(true);
     try {
-      const response = await mockApi.verifyIdentity({
+      const nextState = await verifyIdentity(token, bufferState, {
         type: identityType,
         value: identityValue.trim(),
       });
 
-      dispatch(updateProfileIdentity(response));
-      navigation.navigate('ChooseMode');
+      dispatch(replaceBufferState(nextState));
+      navigation.navigate('PinSetup');
+    } catch (error) {
+      Alert.alert(
+        'Verification failed',
+        error instanceof Error ? error.message : 'We could not verify your identity.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -49,7 +59,10 @@ export function IdentityVerificationScreen({ navigation }: Props) {
         </AppText>
         <View style={styles.segment}>
           <Pressable
-            onPress={() => setIdentityType('BVN')}
+            onPress={() => {
+              setIdentityType('BVN');
+              setIdentityValue(profile.bvn ?? '');
+            }}
             style={[styles.segmentOption, identityType === 'BVN' && styles.segmentOptionActive]}
           >
             <AppText style={styles.segmentLabel} weight="semibold">
@@ -57,7 +70,10 @@ export function IdentityVerificationScreen({ navigation }: Props) {
             </AppText>
           </Pressable>
           <Pressable
-            onPress={() => setIdentityType('NIN')}
+            onPress={() => {
+              setIdentityType('NIN');
+              setIdentityValue(profile.nin ?? '');
+            }}
             style={[styles.segmentOption, identityType === 'NIN' && styles.segmentOptionActive]}
           >
             <AppText
