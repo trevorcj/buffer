@@ -9,7 +9,7 @@ const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
 const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
-const swagger_1 = require("@shared/utils/swagger");
+const swagger_1 = require("./shared/utils/swagger");
 const app = (0, express_1.default)();
 // Middlewares
 app.use(express_1.default.json());
@@ -22,12 +22,12 @@ app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.de
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'UP', timestamp: new Date() });
 });
-const auth_routes_1 = __importDefault(require("@modules/auth/auth.routes"));
-const user_routes_1 = __importDefault(require("@modules/user/user.routes"));
-const wallet_routes_1 = __importDefault(require("@modules/wallet/wallet.routes"));
-const transaction_routes_1 = __importDefault(require("@modules/transaction/transaction.routes"));
-const cushion_routes_1 = __importDefault(require("@modules/cushion/cushion.routes"));
-const card_routes_1 = __importDefault(require("@modules/card/card.routes"));
+const auth_routes_1 = __importDefault(require("./modules/auth/auth.routes"));
+const user_routes_1 = __importDefault(require("./modules/user/user.routes"));
+const wallet_routes_1 = __importDefault(require("./modules/wallet/wallet.routes"));
+const transaction_routes_1 = __importDefault(require("./modules/transaction/transaction.routes"));
+const cushion_routes_1 = __importDefault(require("./modules/cushion/cushion.routes"));
+const card_routes_1 = __importDefault(require("./modules/card/card.routes"));
 app.use('/auth', auth_routes_1.default);
 app.use('/user', user_routes_1.default);
 app.use('/wallet', wallet_routes_1.default);

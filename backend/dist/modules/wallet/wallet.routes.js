@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const wallet_controller_1 = require("./wallet.controller");
-const requireAuth_1 = require("@shared/middleware/requireAuth");
-const validateRequest_1 = require("@shared/middleware/validateRequest");
+const requireAuth_1 = require("../../shared/middleware/requireAuth");
+const validateRequest_1 = require("../../shared/middleware/validateRequest");
 const wallet_dto_1 = require("./wallet.dto");
 const router = (0, express_1.Router)();
 const controller = new wallet_controller_1.WalletController();

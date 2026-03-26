@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const cushion_controller_1 = require("./cushion.controller");
-const requireAuth_1 = require("@shared/middleware/requireAuth");
-const validateRequest_1 = require("@shared/middleware/validateRequest");
+const requireAuth_1 = require("../../shared/middleware/requireAuth");
+const validateRequest_1 = require("../../shared/middleware/validateRequest");
 const cushion_dto_1 = require("./cushion.dto");
 const router = (0, express_1.Router)();
 const controller = new cushion_controller_1.CushionController();
