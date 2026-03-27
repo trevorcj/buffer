@@ -138,7 +138,7 @@ So instead of relying on leftover money or saving habits, users build emergency 
 
 ### Integrations
 
-- Interswitch card and payment flow integration points
+- Interswitch sandbox integration through the backend
 - Identity verification flow for onboarding
 - Cushion withdrawal and bill payment flows
 
@@ -190,18 +190,33 @@ Backend API for Buffer, a fintech savings and cushion-wallet experience built fo
 - Swagger docs: `https://buffer-0sox.onrender.com/api-docs`
 - Health check: `https://buffer-0sox.onrender.com/health`
 
-## Hackathon Compliance
+## Interswitch Integration
 
-This project uses standard frameworks for delivery, but the financial transaction layer is wired around Interswitch sandbox APIs as required by the hackathon brief.
+Buffer uses Interswitch through the backend in sandbox mode.
 
-Current Interswitch-backed flows in this backend:
+The mobile app does not call Interswitch directly and does not store Interswitch credentials. Instead, the app talks to the Buffer backend, and the backend owns the Interswitch token flow and provider requests.
 
-- Bank list retrieval
-- Account name resolution
-- Wallet-to-bank transfer initiation and status checks
-- Cushion withdrawal to bank accounts
-- Cushion bill payment
-- Payment authorization for transaction simulation
+Current Interswitch-connected capabilities in the backend:
+
+- OAuth token generation with `INTERSWITCH_CLIENT_ID` and `INTERSWITCH_CLIENT_SECRET`
+- Receiving institutions lookup for bank lists
+- Customer lookup for account-name resolution
+- Payout initiation for bank transfers
+- Payout status checks
+- Payment authorization used by transaction simulation
+- Bill payment initiation
+
+Current product behavior:
+
+- Core app flows remain usable even when provider-side calls are unstable
+- Some frontend flows use local fallback logic to preserve demo reliability
+- This means the app experience stays smooth, while the backend integration points for Interswitch are still present and documented
+
+In short:
+
+- Frontend: talks to Buffer backend
+- Backend: talks to Interswitch sandbox APIs
+- Demo reliability: protected with fallback behavior where needed
 
 ## What This Backend Supports
 
@@ -213,6 +228,24 @@ Current Interswitch-backed flows in this backend:
 - Virtual card creation, freeze, and unfreeze
 - Bank listing, account resolution, and send-money transfer flow
 - Transaction history and ledger-backed balance updates
+
+## Interswitch Services Used
+
+The backend is currently wired around these Interswitch service categories:
+
+- Authentication / OAuth token flow
+- Receiving Institutions
+- Customer Lookup
+- Payouts
+- Payments
+- Bills Payments
+
+These integrations live in:
+
+- [backend/src/modules/interswitch/interswitch.service.ts](backend/src/modules/interswitch/interswitch.service.ts)
+- [backend/src/modules/transfers/transfer.service.ts](backend/src/modules/transfers/transfer.service.ts)
+- [backend/src/modules/transaction/transaction.service.ts](backend/src/modules/transaction/transaction.service.ts)
+- [backend/src/modules/cushion/cushion.service.ts](backend/src/modules/cushion/cushion.service.ts)
 
 ## Stack
 
