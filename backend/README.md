@@ -119,7 +119,3 @@ This repo does not include seeded login credentials by default. For the demo, ei
 
 - create a fresh account through `POST /auth/register`, or
 - add your shared demo account details to the main submitted GitHub README if your team is using a pre-created account
-
-## Submission Note
-
-If this backend is the secondary repo for your project, add this repository link, the live API URL, Swagger URL, and any shared demo credentials to the README of the original repo you submitted during registration. That is the README judges are expected to use.
