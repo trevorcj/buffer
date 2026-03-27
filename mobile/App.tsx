@@ -11,7 +11,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { PersistedState, createAppStore } from './src/store';
 import { colors } from './src/theme/colors';
-import { loadPersistedState, persistState } from './src/services/storage';
+import {
+  loadPersistedState,
+  persistAccountPin,
+  persistAccountState,
+  persistState,
+} from './src/services/storage';
 import { useAppSelector } from './src/store/hooks';
 
 function StorePersistence() {
@@ -20,6 +25,14 @@ function StorePersistence() {
 
   useEffect(() => {
     persistState({ auth, buffer });
+
+    if (auth.token && buffer.profile.email) {
+      persistAccountState(buffer.profile.email, buffer);
+
+      if (auth.transactionPin) {
+        persistAccountPin(buffer.profile.email, auth.transactionPin);
+      }
+    }
   }, [auth, buffer]);
 
   return null;

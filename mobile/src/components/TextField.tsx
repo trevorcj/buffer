@@ -22,18 +22,19 @@ export function TextField({ hasError = false, style, ...rest }: TextFieldProps) 
 
 const styles = StyleSheet.create({
   wrapper: {
-    height: 42,
+    minHeight: 50,
     borderRadius: radii.pill,
     borderWidth: 1,
     borderColor: colors.border,
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
+    paddingVertical: 10,
   },
   input: {
     fontFamily: fontFamilies.medium,
     fontSize: 15,
     color: colors.black,
-    paddingVertical: 0,
+    paddingVertical: 4,
   },
   error: {
     borderColor: colors.danger,

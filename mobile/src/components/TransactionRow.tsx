@@ -5,7 +5,7 @@ import { Feather, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { BufferTransaction } from '../types/domain';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, formatTransactionListDate } from '../utils/format';
 import { AppText } from './AppText';
 
 interface TransactionRowProps {
@@ -27,6 +27,13 @@ function TransactionRowComponent({ transaction, onPress }: TransactionRowProps) 
     isAddMoneyAction ||
     isUtilityAction;
   const isIncomingAmount = transaction.icon === 'buffer_in' || transaction.icon === 'buffer_add_money';
+  const isSendMoneyAction = transaction.type === 'PAYMENT' && transaction.icon === 'buffer_spend';
+  const title = isSendMoneyAction
+    ? `Sent money to ${transaction.recipient || transaction.merchantName}`
+    : transaction.merchantName;
+  const subtitle = isSendMoneyAction
+    ? formatTransactionListDate(transaction.createdAt)
+    : transaction.merchantSubtitle;
 
   return (
     <Pressable disabled={!onPress} onPress={onPress} style={styles.row}>
@@ -59,16 +66,11 @@ function TransactionRowComponent({ transaction, onPress }: TransactionRowProps) 
       <View style={styles.content}>
         <View style={styles.copy}>
           <AppText numberOfLines={1} style={styles.title} weight="semibold">
-            {transaction.merchantName}
+            {title}
           </AppText>
-          <AppText color={colors.gray} numberOfLines={1} style={styles.subtitle} weight="medium">
-            {transaction.merchantSubtitle}
+          <AppText color={colors.gray} numberOfLines={2} style={styles.subtitle} weight="medium">
+            {subtitle}
           </AppText>
-          {transaction.note ? (
-            <AppText color={colors.gray} style={styles.note} weight="medium">
-              {transaction.note}
-            </AppText>
-          ) : null}
         </View>
         <View style={styles.amountWrap}>
           <AppText
@@ -130,12 +132,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 12,
     lineHeight: 16,
-  },
-  note: {
-    marginTop: 4,
-    fontSize: 11,
-    lineHeight: 15,
-    maxWidth: 220,
   },
   amountWrap: {
     alignItems: 'flex-end',

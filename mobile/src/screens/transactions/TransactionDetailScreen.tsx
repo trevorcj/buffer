@@ -145,7 +145,7 @@ export function TransactionDetailScreen({ navigation, route }: Props) {
           </AppText>
           <View style={styles.rows}>
             <DetailRow label="Status" value={statusLabel} />
-            {transaction.note ? <DetailRow label="Note" value={transaction.note} /> : null}
+            {transaction.note ? <DetailRow label="Description" value={transaction.note} /> : null}
             <DetailRow label="Amount" value={formatCurrency(transaction.amount)} />
             <DetailRow label="Saved" value={formatCurrency(transaction.savedAmount)} />
             <DetailRow label="Recipient" value={transaction.recipient} />

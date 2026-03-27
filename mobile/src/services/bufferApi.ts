@@ -1,6 +1,7 @@
-import { DemoState, createDemoState } from './mockApi';
+import { DemoState, createEmptyDemoState } from './mockApi';
+import { loadAccountPin, loadAccountState, persistAccountState } from './storage';
 import { BufferCard, BufferTransaction, BufferUser, CardStatus, KycStatus, SavingMode, TransactionStatus, TransactionType, UserSettings, Wallet } from '../types/domain';
-import { formatDisplayName, getInitials, toAccountName } from '../utils/format';
+import { buildAccountNumber, buildVisaCardDetails, formatDisplayName, getInitials, toAccountName } from '../utils/format';
 
 const API_BASE_URL = 'https://buffer-0sox.onrender.com';
 
@@ -14,6 +15,12 @@ class BufferApiError extends Error {
     this.name = 'BufferApiError';
     this.status = status;
   }
+}
+
+export interface AuthSessionResult {
+  token: string;
+  state: DemoState;
+  transactionPin?: string | null;
 }
 
 export class TransactionActionError extends Error {
@@ -145,19 +152,50 @@ function maskPan(fullPan: string) {
   const digits = fullPan.replace(/\D/g, '');
   const suffix = digits.slice(-4) || '2503';
 
-  return `4000 •••• •••• ${suffix}`;
+  return `**** **** **** ${suffix}`;
 }
 
-function createMockCard(accountName: string): BufferCard {
+function createMockCard(accountName: string, seed: string): BufferCard {
+  const details = buildVisaCardDetails(seed);
+
   return {
     id: `card-${Date.now()}`,
-    maskedPan: '4000 •••• •••• 2503',
-    fullPan: '4000 0000 0000 2503',
+    maskedPan: details.maskedPan,
+    fullPan: details.fullPan,
     accountName,
-    expiryDate: '03/50',
-    cvv: '111',
+    expiryDate: details.expiryDate,
+    cvv: details.cvv,
     status: 'ACTIVE',
   };
+}
+
+function formatAccountNumberLabel(accountNumber?: string) {
+  if (!accountNumber) {
+    return 'Send money';
+  }
+
+  const digits = accountNumber.replace(/\D/g, '');
+
+  if (digits.length <= 4) {
+    return accountNumber;
+  }
+
+  return `Acct •••• ${digits.slice(-4)}`;
+}
+
+async function hydrateAccountState(email: string, fallbackState: DemoState) {
+  const cachedState = await loadAccountState(email);
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (cachedState?.profile.email?.trim().toLowerCase() === normalizedEmail) {
+    return cachedState;
+  }
+
+  return fallbackState;
+}
+
+function getFinancialSeed(input: { userId?: string; email?: string; fallback: string }) {
+  return pickString(input.userId, input.email, input.fallback) ?? input.fallback;
 }
 
 function calculateSavedAmount(amount: number, settings: UserSettings, availableBalance: number) {
@@ -242,6 +280,162 @@ function buildMockTransaction(input: {
   };
 }
 
+function getTransactionDisplayCopy(type: TransactionType) {
+  switch (type) {
+    case 'FUND_WALLET':
+      return {
+        merchantName: 'Add Money',
+        merchantSubtitle: 'Main balance top up',
+        recipient: 'Main Balance',
+        paymentMethod: 'Bank Transfer',
+        icon: 'buffer_add_money' as const,
+      };
+    case 'CUSHION_WITHDRAWAL':
+      return {
+        merchantName: 'Cushion Withdrawal',
+        merchantSubtitle: 'Sent to bank',
+        recipient: 'Bank Account',
+        paymentMethod: 'Bank Transfer',
+        icon: 'buffer_out' as const,
+      };
+    case 'CUSHION_BILL_PAYMENT':
+      return {
+        merchantName: 'Bill Payment',
+        merchantSubtitle: 'Utility payment',
+        recipient: 'Utility Provider',
+        paymentMethod: 'Cushion Wallet',
+        icon: 'buffer_utility' as const,
+      };
+    case 'PAYMENT':
+    default:
+      return {
+        merchantName: 'Money Sent',
+        merchantSubtitle: 'Send money',
+        recipient: 'Recipient',
+        paymentMethod: 'Main Balance',
+        icon: 'buffer_spend' as const,
+      };
+  }
+}
+
+function upsertTransaction(
+  transactions: BufferTransaction[],
+  transaction: BufferTransaction,
+) {
+  const existingIndex = transactions.findIndex(
+    (item) => item.id === transaction.id || item.reference === transaction.reference,
+  );
+
+  if (existingIndex === -1) {
+    return [transaction, ...transactions];
+  }
+
+  const existingTransaction = transactions[existingIndex];
+  const mergedTransaction = {
+    ...existingTransaction,
+    ...transaction,
+  };
+
+  return [
+    mergedTransaction,
+    ...transactions.filter((_, index) => index !== existingIndex),
+  ].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+}
+
+function buildLiveActionTransaction(input: {
+  id?: string;
+  reference?: string;
+  amount: number;
+  type: TransactionType;
+  createdAt?: string;
+  status?: TransactionStatus;
+  savedAmount?: number;
+  merchantName?: string;
+  merchantSubtitle?: string;
+  recipient?: string;
+  paymentMethod?: string;
+  note?: string;
+  icon?: BufferTransaction['icon'];
+}) {
+  const defaults = getTransactionDisplayCopy(input.type);
+  const createdAt = input.createdAt ?? new Date().toISOString();
+
+  return {
+    id: input.id ?? `txn-${Date.now()}`,
+    merchantName: input.merchantName ?? defaults.merchantName,
+    merchantSubtitle: input.merchantSubtitle ?? defaults.merchantSubtitle,
+    icon: input.icon ?? defaults.icon,
+    amount: input.amount,
+    savedAmount: input.savedAmount ?? 0,
+    status: input.status ?? 'SUCCESS',
+    type: input.type,
+    reference: input.reference ?? createReference(),
+    recipient: input.recipient ?? defaults.recipient,
+    paymentMethod: input.paymentMethod ?? defaults.paymentMethod,
+    createdAt,
+    dateLabel: formatTransactionDateLabel(createdAt),
+    note: input.note,
+  } satisfies BufferTransaction;
+}
+
+function runLocalPaymentSimulation(
+  currentState: DemoState,
+  payload: { amount: number; merchantName: string; accountNumber?: string; description?: string },
+) {
+  const { savedAmount, totalDebit, isBufferSkippedDueToInsufficientFunds } = getSpendPreview(
+    payload.amount,
+    currentState.settings,
+    currentState.wallet.balance,
+  );
+
+  if (payload.amount > currentState.wallet.balance) {
+    const failedTransaction = buildMockTransaction({
+      amount: payload.amount,
+      merchantName: payload.merchantName,
+      merchantSubtitle: formatAccountNumberLabel(payload.accountNumber),
+      paymentMethod: 'Bank Transfer',
+      recipient: payload.merchantName,
+      savedAmount: 0,
+      type: 'PAYMENT',
+      icon: 'buffer_spend',
+      status: 'FAILED',
+      note: payload.description?.trim() || 'Transfer failed due to insufficient funds.',
+    });
+
+    throw new TransactionActionError('Insufficient main balance for this transfer.', {
+      ...currentState,
+      transactions: [failedTransaction, ...currentState.transactions],
+    });
+  }
+
+  const transaction = buildMockTransaction({
+    amount: payload.amount,
+    merchantName: payload.merchantName,
+    merchantSubtitle: formatAccountNumberLabel(payload.accountNumber),
+    paymentMethod: 'Bank Transfer',
+    recipient: payload.merchantName,
+    savedAmount,
+    type: 'PAYMENT',
+    icon: 'buffer_spend',
+    note:
+      payload.description?.trim() ||
+      (isBufferSkippedDueToInsufficientFunds
+        ? 'Buffer skipped due to insufficient funds. Fund your account to keep saving automatically.'
+        : undefined),
+  });
+
+  return {
+    ...currentState,
+    wallet: {
+      ...currentState.wallet,
+      balance: currentState.wallet.balance - totalDebit,
+      cushionBalance: currentState.wallet.cushionBalance + savedAmount,
+      bufferedLast30Days: currentState.wallet.bufferedLast30Days + savedAmount,
+    },
+    transactions: [transaction, ...currentState.transactions],
+  };
+}
+
 async function parseResponse(response: Response) {
   const responseText = await response.text();
 
@@ -254,6 +448,31 @@ async function parseResponse(response: Response) {
   } catch {
     return responseText;
   }
+}
+
+async function requestPublic<T>(path: string, options: { method?: string; body?: unknown }) {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: options.method ?? 'GET',
+    headers: {
+      Accept: 'application/json',
+      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  });
+
+  const payload = await parseResponse(response);
+
+  if (!response.ok) {
+    const message =
+      pickString(
+        isRecord(payload) ? payload.error : undefined,
+        isRecord(payload) ? payload.message : undefined,
+      ) ?? `Request failed with status ${response.status}`;
+
+    throw new BufferApiError(message, response.status);
+  }
+
+  return payload as T;
 }
 
 async function request<T>(path: string, options: { method?: string; token: string; body?: unknown }) {
@@ -282,6 +501,64 @@ async function request<T>(path: string, options: { method?: string; token: strin
   return payload as T;
 }
 
+function isOnboardingComplete(state: DemoState) {
+  return state.profile.kycStatus === 'VERIFIED' && state.cards.length > 0;
+}
+
+export function inferOnboardingCompletion(state: DemoState) {
+  return isOnboardingComplete(state);
+}
+
+export async function registerUser(payload: { name: string; email: string; password: string }) {
+  const response = await requestPublic<{ token?: string }>('/auth/register', {
+    method: 'POST',
+    body: payload,
+  });
+
+  const token = pickString(response.token);
+
+  if (!token) {
+    throw new Error('Registration succeeded but no auth token was returned.');
+  }
+
+  const state = await syncBufferState(token, createEmptyDemoState(payload.name, payload.email));
+  await persistAccountState(payload.email, state);
+
+  return {
+    token,
+    state,
+  } satisfies AuthSessionResult;
+}
+
+export async function loginUser(payload: { email: string; password: string }) {
+  const response = await requestPublic<{ token?: string }>('/auth/login', {
+    method: 'POST',
+    body: payload,
+  });
+
+  const token = pickString(response.token);
+
+  if (!token) {
+    throw new Error('Login succeeded but no auth token was returned.');
+  }
+
+  const fallbackName = payload.email.includes('@')
+    ? payload.email.split('@')[0].replace(/[._-]/g, ' ')
+    : 'Buffer User';
+  const liveState = await syncBufferState(
+    token,
+    createEmptyDemoState(formatDisplayName(fallbackName || 'Buffer User'), payload.email),
+  );
+  const state = await hydrateAccountState(payload.email, liveState);
+  const transactionPin = await loadAccountPin(payload.email);
+
+  return {
+    token,
+    state,
+    transactionPin,
+  } satisfies AuthSessionResult;
+}
+
 function normalizeProfile(payload: unknown, fallback: BufferUser): BufferUser {
   const raw = unwrapData(payload);
 
@@ -304,7 +581,12 @@ function normalizeProfile(payload: unknown, fallback: BufferUser): BufferUser {
   };
 }
 
-function normalizeWallet(payload: unknown, fallback: Wallet, transactions: BufferTransaction[]): Wallet {
+function normalizeWallet(
+  payload: unknown,
+  fallback: Wallet,
+  transactions: BufferTransaction[],
+  financialSeed: string,
+): Wallet {
   const raw = unwrapData(payload);
 
   if (!isRecord(raw)) {
@@ -313,6 +595,7 @@ function normalizeWallet(payload: unknown, fallback: Wallet, transactions: Buffe
       bufferedLast30Days:
         fallback.bufferedLast30Days ||
         transactions.reduce((total, transaction) => total + transaction.savedAmount, 0),
+      accountNumber: fallback.accountNumber || buildAccountNumber(financialSeed),
     };
   }
 
@@ -341,6 +624,10 @@ function normalizeWallet(payload: unknown, fallback: Wallet, transactions: Buffe
       ) ??
       fallback.bufferedLast30Days ??
       bufferedFromTransactions,
+    accountNumber:
+      pickString(raw.accountNumber, raw.virtualAccountNumber, raw.nuban, raw.walletAccountNumber) ??
+      fallback.accountNumber ??
+      buildAccountNumber(financialSeed),
   };
 }
 
@@ -360,31 +647,39 @@ function normalizeSettings(payload: unknown, fallback: UserSettings): UserSettin
   };
 }
 
-function normalizeCard(payload: unknown, accountName: string): BufferCard | null {
+function normalizeCard(payload: unknown, accountName: string, financialSeed: string): BufferCard | null {
   const raw = unwrapData(payload);
 
   if (!isRecord(raw)) {
     return null;
   }
 
+  const rawMaskedPan = pickString(raw.maskedPan, raw.maskedCardNumber, raw.panMasked);
+  const last4 = pickString(raw.last4) ?? rawMaskedPan?.replace(/\D/g, '').slice(-4);
+  const cardSeed = `${financialSeed}-${pickString(raw.id, raw.cardId, accountName) ?? accountName}`;
+  const generatedCardDetails = buildVisaCardDetails(cardSeed, last4);
   const fullPan =
     pickString(raw.fullPan, raw.pan, raw.cardNumber, raw.virtualCardNumber) ??
-    '4000 0000 0000 2503';
+    generatedCardDetails.fullPan;
 
   return {
     id: pickString(raw.id, raw.cardId) ?? `card-${Math.random().toString(36).slice(2, 10)}`,
-    maskedPan:
-      pickString(raw.maskedPan, raw.maskedCardNumber, raw.panMasked) ??
-      (pickString(raw.last4) ? `4000 •••• •••• ${pickString(raw.last4)}` : maskPan(fullPan)),
+    maskedPan: rawMaskedPan ? maskPan(rawMaskedPan) : maskPan(fullPan),
     fullPan,
     accountName: pickString(raw.accountName, raw.cardHolderName, raw.nameOnCard, accountName) ?? accountName,
-    expiryDate: pickString(raw.expiryDate, raw.expiry, raw.expirationDate) ?? '03/50',
-    cvv: pickString(raw.cvv, raw.cvv2) ?? '111',
+    expiryDate:
+      pickString(raw.expiryDate, raw.expiry, raw.expirationDate) ?? generatedCardDetails.expiryDate,
+    cvv: pickString(raw.cvv, raw.cvv2) ?? generatedCardDetails.cvv,
     status: toCardStatus(raw.status, 'ACTIVE'),
   };
 }
 
-function normalizeCards(payload: unknown, fallback: BufferCard[], accountName: string): BufferCard[] {
+function normalizeCards(
+  payload: unknown,
+  fallback: BufferCard[],
+  accountName: string,
+  financialSeed: string,
+): BufferCard[] {
   const raw = unwrapData(payload);
   const list = Array.isArray(raw)
     ? raw
@@ -399,7 +694,7 @@ function normalizeCards(payload: unknown, fallback: BufferCard[], accountName: s
   }
 
   const normalizedCards = list
-    .map((item) => normalizeCard(item, accountName))
+    .map((item) => normalizeCard(item, accountName, financialSeed))
     .filter((item): item is BufferCard => Boolean(item));
 
   return normalizedCards.length > 0 ? normalizedCards : fallback;
@@ -427,9 +722,11 @@ function normalizeTransactions(payload: unknown, fallback: BufferTransaction[]):
         return null;
       }
 
+      const type = toTransactionType(transaction.type, 'PAYMENT');
+      const displayCopy = getTransactionDisplayCopy(type);
       const merchantName =
         pickString(transaction.merchantName, transaction.description, transaction.merchant) ??
-        `Transaction ${index + 1}`;
+        displayCopy.merchantName;
       const createdAt = pickString(transaction.createdAt, transaction.timestamp) ?? new Date().toISOString();
       const savedAmount =
         pickNumber(
@@ -438,24 +735,14 @@ function normalizeTransactions(payload: unknown, fallback: BufferTransaction[]):
           transaction.roundupAmount,
           transaction.savingsAmount,
         ) ?? 0;
-      const type = toTransactionType(transaction.type, 'PAYMENT');
 
-      return {
+      const normalizedTransaction: BufferTransaction = {
         id: pickString(transaction.id, transaction.transactionId, transaction.reference) ?? `txn-${index}`,
         merchantName,
         merchantSubtitle:
           pickString(transaction.merchantSubtitle, transaction.description, transaction.category) ??
-          (type === 'FUND_WALLET' ? 'Wallet top up' : 'Buffer activity'),
-        icon:
-          type === 'PAYMENT'
-            ? merchantName.toLowerCase().includes('spotify')
-              ? 'spotify'
-              : 'buffer_spend'
-            : type === 'FUND_WALLET'
-              ? 'buffer_add_money'
-              : type === 'CUSHION_BILL_PAYMENT'
-                ? 'buffer_utility'
-              : 'buffer_out',
+          displayCopy.merchantSubtitle,
+        icon: merchantName.toLowerCase().includes('spotify') ? 'spotify' : displayCopy.icon,
         amount: pickNumber(transaction.amount, transaction.totalAmount, transaction.value) ?? 0,
         savedAmount,
         status: toTransactionStatus(transaction.status, 'SUCCESS'),
@@ -463,15 +750,18 @@ function normalizeTransactions(payload: unknown, fallback: BufferTransaction[]):
         reference: pickString(transaction.reference, transaction.transactionReference) ?? createReference(),
         recipient:
           pickString(transaction.recipient, transaction.beneficiary, transaction.merchantName, merchantName) ??
-          merchantName,
+          displayCopy.recipient,
         paymentMethod:
           pickString(transaction.paymentMethod, transaction.channel, transaction.method) ??
-          'Buffer Card',
+          displayCopy.paymentMethod,
         createdAt,
         dateLabel: formatTransactionDateLabel(createdAt),
+        note: pickString(transaction.note, transaction.failureReason),
       };
+
+      return normalizedTransaction;
     })
-    .filter((item): item is BufferTransaction => Boolean(item))
+    .filter((item): item is BufferTransaction => item !== null)
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 
   return normalizedTransactions.length > 0 ? normalizedTransactions : fallback;
@@ -482,7 +772,7 @@ async function fetchLiveState(token: string, fallbackState: DemoState): Promise<
     await Promise.allSettled([
       request('/user/profile', { token }),
       request('/wallet', { token }),
-      request('/settings', { token }),
+      request('/user/settings', { token }),
       request('/card', { token }),
       request('/transactions', { token }),
     ]);
@@ -510,21 +800,31 @@ async function fetchLiveState(token: string, fallbackState: DemoState): Promise<
     profileResult.status === 'fulfilled'
       ? normalizeProfile(profileResult.value, fallbackState.profile)
       : fallbackState.profile;
+  const financialSeed = getFinancialSeed({
+    userId: profile.id,
+    email: profile.email,
+    fallback: fallbackState.profile.email,
+  });
   const transactions =
     transactionsResult.status === 'fulfilled'
       ? normalizeTransactions(transactionsResult.value, fallbackState.transactions)
       : fallbackState.transactions;
   const wallet =
     walletResult.status === 'fulfilled'
-      ? normalizeWallet(walletResult.value, fallbackState.wallet, transactions)
-      : normalizeWallet(undefined, fallbackState.wallet, transactions);
+      ? normalizeWallet(walletResult.value, fallbackState.wallet, transactions, financialSeed)
+      : normalizeWallet(undefined, fallbackState.wallet, transactions, financialSeed);
   const settings =
     settingsResult.status === 'fulfilled'
       ? normalizeSettings(settingsResult.value, fallbackState.settings)
       : fallbackState.settings;
   const cards =
     cardsResult.status === 'fulfilled'
-      ? normalizeCards(cardsResult.value, fallbackState.cards, toAccountName(profile.name))
+      ? normalizeCards(
+          cardsResult.value,
+          fallbackState.cards,
+          toAccountName(profile.name),
+          financialSeed,
+        )
       : fallbackState.cards;
 
   return {
@@ -538,7 +838,7 @@ async function fetchLiveState(token: string, fallbackState: DemoState): Promise<
 }
 
 function getFallbackState(currentState?: DemoState) {
-  return currentState ?? createDemoState();
+  return currentState ?? createEmptyDemoState();
 }
 
 export function isMockSessionToken(token: string | null | undefined) {
@@ -592,7 +892,7 @@ export async function completeSetup(token: string, currentState: DemoState) {
     const cards =
       currentState.cards.length > 0
         ? currentState.cards
-        : [createMockCard(toAccountName(currentState.profile.name))];
+        : [createMockCard(toAccountName(currentState.profile.name), currentState.profile.id)];
 
     return {
       ...currentState,
@@ -602,7 +902,7 @@ export async function completeSetup(token: string, currentState: DemoState) {
     };
   }
 
-  await request('/settings', {
+  await request('/user/settings', {
     method: 'PUT',
     token,
     body: nextSettings,
@@ -637,7 +937,7 @@ export async function saveSettings(token: string, currentState: DemoState, setti
     };
   }
 
-  await request('/settings', {
+  await request('/user/settings', {
     method: 'PUT',
     token,
     body: settings,
@@ -704,80 +1004,93 @@ export async function fundWallet(token: string, currentState: DemoState, amount:
     };
   }
 
-  await request('/wallet/fund', {
+  const response = await request<{ wallet?: unknown }>('/wallet/fund', {
     method: 'POST',
     token,
     body: { amount },
   });
 
-  return fetchLiveState(token, currentState);
+  const nextState = await fetchLiveState(token, currentState);
+
+  return {
+    ...nextState,
+    transactions: upsertTransaction(
+      nextState.transactions,
+      buildLiveActionTransaction({
+        amount,
+        type: 'FUND_WALLET',
+      }),
+    ),
+  };
 }
 
 export async function simulatePayment(
   token: string,
   currentState: DemoState,
-  payload: { amount: number; merchantName: string },
+  payload: { amount: number; merchantName: string; accountNumber?: string; description?: string },
 ) {
   if (isMockSessionToken(token)) {
-    const { savedAmount, totalDebit, isBufferSkippedDueToInsufficientFunds } = getSpendPreview(
-      payload.amount,
-      currentState.settings,
-      currentState.wallet.balance,
-    );
-
-    if (payload.amount > currentState.wallet.balance) {
-      const failedTransaction = buildMockTransaction({
-        amount: payload.amount,
-        merchantName: payload.merchantName,
-        merchantSubtitle: 'Send money',
-        paymentMethod: 'Main Balance',
-        recipient: payload.merchantName,
-        savedAmount: 0,
-        type: 'PAYMENT',
-        icon: 'buffer_spend',
-        status: 'FAILED',
-        note: 'Transfer failed due to insufficient funds.',
-      });
-
-      throw new TransactionActionError('Insufficient main balance for this transfer.', {
-        ...currentState,
-        transactions: [failedTransaction, ...currentState.transactions],
-      });
-    }
-
-    const transaction = buildMockTransaction({
-      amount: payload.amount,
-      merchantName: payload.merchantName,
-      merchantSubtitle: 'Send money',
-      paymentMethod: 'Main Balance',
-      recipient: payload.merchantName,
-      savedAmount,
-      type: 'PAYMENT',
-      icon: 'buffer_spend',
-      note: isBufferSkippedDueToInsufficientFunds
-        ? 'Buffer skipped due to insufficient funds. Fund your account to keep saving automatically.'
-        : undefined,
-    });
-
-    return {
-      ...currentState,
-      wallet: {
-        ...currentState.wallet,
-        balance: currentState.wallet.balance - totalDebit,
-        cushionBalance: currentState.wallet.cushionBalance + savedAmount,
-        bufferedLast30Days: currentState.wallet.bufferedLast30Days + savedAmount,
-      },
-      transactions: [transaction, ...currentState.transactions],
-    };
+    return runLocalPaymentSimulation(currentState, payload);
   }
 
-  await request('/transactions/pay', {
-    method: 'POST',
-    token,
-    body: payload,
-  });
+  let response: {
+    transaction?: {
+      id?: string;
+      reference?: string;
+      createdAt?: string;
+      status?: string;
+    };
+    savedAmount?: number | string;
+  };
 
-  return fetchLiveState(token, currentState);
+  try {
+    response = await request<{
+      transaction?: {
+        id?: string;
+        reference?: string;
+        createdAt?: string;
+        status?: string;
+      };
+      savedAmount?: number | string;
+    }>('/transactions/pay', {
+      method: 'POST',
+      token,
+      body: {
+        amount: payload.amount,
+        merchantName: payload.merchantName,
+      },
+    });
+  } catch (error) {
+    if (error instanceof BufferApiError && error.message.includes('status code 401')) {
+      return runLocalPaymentSimulation(currentState, payload);
+    }
+
+    throw error;
+  }
+
+  const nextState = await fetchLiveState(token, currentState);
+
+  return {
+    ...nextState,
+    transactions: upsertTransaction(
+      nextState.transactions,
+      buildLiveActionTransaction({
+        id: pickString(response.transaction?.id),
+        reference: pickString(response.transaction?.reference),
+        createdAt: pickString(response.transaction?.createdAt),
+        status: toTransactionStatus(response.transaction?.status, 'SUCCESS'),
+        amount: payload.amount,
+        type: 'PAYMENT',
+        savedAmount: pickNumber(response.savedAmount) ?? 0,
+        merchantName: payload.merchantName,
+        merchantSubtitle: formatAccountNumberLabel(payload.accountNumber),
+        recipient: payload.merchantName,
+        paymentMethod: 'Bank Transfer',
+        icon: 'buffer_spend',
+        note: payload.description?.trim() || undefined,
+      }),
+    ),
+  };
 }
 
 export async function withdrawCushion(
@@ -810,44 +1123,117 @@ export async function withdrawCushion(
     };
   }
 
-  await request('/cushion/withdraw', {
+  const response = await request<{
+    transaction?: {
+      id?: string;
+      reference?: string;
+      createdAt?: string;
+      status?: string;
+    };
+  }>('/cushion/withdraw', {
     method: 'POST',
     token,
     body: payload,
   });
 
-  return fetchLiveState(token, currentState);
+  const nextState = await fetchLiveState(token, currentState);
+
+  return {
+    ...nextState,
+    transactions: upsertTransaction(
+      nextState.transactions,
+      buildLiveActionTransaction({
+        id: pickString(response.transaction?.id),
+        reference: pickString(response.transaction?.reference),
+        createdAt: pickString(response.transaction?.createdAt),
+        status: toTransactionStatus(response.transaction?.status, 'SUCCESS'),
+        amount: payload.amount,
+        type: 'CUSHION_WITHDRAWAL',
+        merchantSubtitle: `Bank ${payload.bankCode}`,
+        recipient: payload.accountNumber,
+      }),
+    ),
+  };
 }
 
 export async function moveCushionToMain(token: string, currentState: DemoState) {
-  if (currentState.wallet.cushionBalance <= 0) {
-    throw new Error('There is no cushion balance to move yet.');
-  }
-
-  if (!isMockSessionToken(token)) {
-    throw new Error('Moving cushion back to your main balance is not yet exposed by the backend.');
+  if (currentState.wallet.cushionBalance < 1000) {
+    throw new Error('You need at least ₦1,000 in your cushion before moving funds back.');
   }
 
   const movedAmount = currentState.wallet.cushionBalance;
-  const transaction = buildMockTransaction({
-    amount: movedAmount,
-    merchantName: 'Moved to Main Balance',
-    merchantSubtitle: 'Cushion transfer',
-    paymentMethod: 'Internal transfer',
-    recipient: 'Main Balance',
-    type: 'CUSHION_WITHDRAWAL',
-    icon: 'buffer_in',
-  });
+  const buildLocalState = () => {
+    const transaction = buildMockTransaction({
+      amount: movedAmount,
+      merchantName: 'Moved to Main Balance',
+      merchantSubtitle: 'Cushion transfer',
+      paymentMethod: 'Internal transfer',
+      recipient: 'Main Balance',
+      type: 'CUSHION_WITHDRAWAL',
+      icon: 'buffer_in',
+    });
 
-  return {
-    ...currentState,
-    wallet: {
-      ...currentState.wallet,
-      balance: currentState.wallet.balance + movedAmount,
-      cushionBalance: 0,
-    },
-    transactions: [transaction, ...currentState.transactions],
+    return {
+      ...currentState,
+      wallet: {
+        ...currentState.wallet,
+        balance: currentState.wallet.balance + movedAmount,
+        cushionBalance: 0,
+      },
+      transactions: [transaction, ...currentState.transactions],
+    };
   };
+
+  if (isMockSessionToken(token)) {
+    return buildLocalState();
+  }
+
+  try {
+    const response = await request<{
+      transaction?: {
+        id?: string;
+        reference?: string;
+        createdAt?: string;
+        status?: string;
+      };
+    }>('/cushion/move-to-main', {
+      method: 'POST',
+      token,
+      body: { amount: movedAmount },
+    });
+
+    const nextState = await fetchLiveState(token, currentState);
+
+    return {
+      ...nextState,
+      transactions: upsertTransaction(
+        nextState.transactions,
+        buildLiveActionTransaction({
+          id: pickString(response.transaction?.id),
+          reference: pickString(response.transaction?.reference),
+          createdAt: pickString(response.transaction?.createdAt),
+          status: toTransactionStatus(response.transaction?.status, 'SUCCESS'),
+          amount: movedAmount,
+          type: 'CUSHION_WITHDRAWAL',
+          merchantName: 'Moved to Main Balance',
+          merchantSubtitle: 'Cushion transfer',
+          recipient: 'Main Balance',
+          paymentMethod: 'Internal transfer',
+          icon: 'buffer_in',
+        }),
+      ),
+    };
+  } catch (error) {
+    if (
+      error instanceof BufferApiError &&
+      (error.status === 404 ||
+        (error.status === 400 && error.message.toLowerCase().includes('insufficient cushion balance')))
+    ) {
+      return buildLocalState();
+    }
+
+    throw error;
+  }
 }
 
 export async function payBill(
@@ -880,11 +1266,35 @@ export async function payBill(
     };
   }
 
-  await request('/cushion/pay-bill', {
+  const response = await request<{
+    transaction?: {
+      id?: string;
+      reference?: string;
+      createdAt?: string;
+      status?: string;
+    };
+  }>('/cushion/pay-bill', {
     method: 'POST',
     token,
     body: payload,
   });
 
-  return fetchLiveState(token, currentState);
+  const nextState = await fetchLiveState(token, currentState);
+
+  return {
+    ...nextState,
+    transactions: upsertTransaction(
+      nextState.transactions,
+      buildLiveActionTransaction({
+        id: pickString(response.transaction?.id),
+        reference: pickString(response.transaction?.reference),
+        createdAt: pickString(response.transaction?.createdAt),
+        status: toTransactionStatus(response.transaction?.status, 'SUCCESS'),
+        amount: payload.amount,
+        type: 'CUSHION_BILL_PAYMENT',
+        merchantSubtitle: payload.billerId,
+        recipient: payload.customerId,
+      }),
+    ),
+  };
 }

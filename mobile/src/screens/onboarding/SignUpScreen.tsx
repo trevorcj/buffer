@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,12 +15,12 @@ import { AppText } from '../../components/AppText';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { TextField } from '../../components/TextField';
 import { GuestStackParamList } from '../../navigation/types';
-import { colors } from '../../theme/colors';
-import { spacing } from '../../theme/spacing';
-import { mockApi } from '../../services/mockApi';
+import { registerUser } from '../../services/bufferApi';
 import { useAppDispatch } from '../../store/hooks';
 import { setSession } from '../../store/slices/authSlice';
 import { replaceBufferState } from '../../store/slices/bufferSlice';
+import { colors } from '../../theme/colors';
+import { spacing } from '../../theme/spacing';
 
 type Props = NativeStackScreenProps<GuestStackParamList, 'SignUp'>;
 
@@ -36,7 +37,7 @@ export function SignUpScreen({ navigation }: Props) {
     setIsSubmitting(true);
 
     try {
-      const response = await mockApi.register({
+      const response = await registerUser({
         name: name.trim(),
         email: email.trim(),
         password,
@@ -48,6 +49,11 @@ export function SignUpScreen({ navigation }: Props) {
           token: response.token,
           hasCompletedOnboarding: false,
         }),
+      );
+    } catch (error) {
+      Alert.alert(
+        'Unable to create account',
+        error instanceof Error ? error.message : 'Please try again.',
       );
     } finally {
       setIsSubmitting(false);
@@ -81,10 +87,11 @@ export function SignUpScreen({ navigation }: Props) {
             />
           </View>
           <PrimaryButton
-            label={isSubmitting ? 'Continuing...' : 'Continue'}
+            label={isSubmitting ? 'Creating account...' : 'Create Account'}
             onPress={handleContinue}
             style={styles.button}
             disabled={isDisabled}
+            loading={isSubmitting}
           />
           <Pressable onPress={() => navigation.navigate('Login')} style={styles.switchLink}>
             <AppText color={colors.gray} style={styles.linkText} weight="medium">

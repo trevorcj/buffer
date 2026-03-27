@@ -84,6 +84,7 @@ export function CardScreen() {
     () => getBufferedLast30DaysLabel(bufferedLast30Days),
     [bufferedLast30Days],
   );
+  const canMoveFunds = wallet.cushionBalance >= 1000;
 
   const handleToggleCard = async () => {
     if (!token || card.id === 'placeholder-card' || isTogglingCard) {
@@ -155,6 +156,7 @@ export function CardScreen() {
           <AppText style={styles.infoTitle} weight="bold">
             Account Information
           </AppText>
+          <InfoRow label="Account Number" value={wallet.accountNumber} />
           <InfoRow label="Card Number" value={fullPan} />
           <InfoRow label="Account Name" value={accountName} />
           <InfoRow label="Expiry Date" value={card.expiryDate} />
@@ -199,6 +201,7 @@ export function CardScreen() {
           </View>
 
           <PrimaryButton
+            disabled={!canMoveFunds || isMovingFunds}
             label={isMovingFunds ? 'Moving...' : 'Move to main balance'}
             onPress={handleMoveToMain}
             style={styles.singleButton}

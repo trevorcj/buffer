@@ -27,7 +27,7 @@ export function PinPromptModal({
   onConfirm,
 }: PinPromptModalProps) {
   return (
-    <Modal animationType="fade" transparent visible={visible}>
+    <Modal animationType="slide" transparent visible={visible}>
       <View style={styles.overlay}>
         <Pressable onPress={onClose} style={StyleSheet.absoluteFill} />
         <View style={styles.sheet}>
@@ -71,17 +71,16 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(18, 18, 18, 0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
+    justifyContent: 'flex-end',
   },
   sheet: {
     width: '100%',
-    borderRadius: radii.xl,
+    borderTopLeftRadius: radii.xl,
+    borderTopRightRadius: radii.xl,
     backgroundColor: colors.white,
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.xxxl,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.xxxl,
   },
   title: {
     marginTop: spacing.xl,

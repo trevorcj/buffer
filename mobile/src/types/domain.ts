@@ -22,6 +22,7 @@ export interface Wallet {
   balance: number;
   cushionBalance: number;
   bufferedLast30Days: number;
+  accountNumber: string;
 }
 
 export interface UserSettings {

@@ -69,7 +69,11 @@ export function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        bounces={false}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <View style={styles.headerRow}>
             <Pressable onPress={() => navigation.navigate('SettingsTab')} style={styles.profileRow}>
@@ -127,8 +131,9 @@ export function HomeScreen() {
         <View style={styles.panel}>
           <BufferCard
             bufferedLabel={bufferedLabel}
-            cardNumber={cards[0]?.maskedPan ?? '4000 •••• •••• •••• 2503'}
+            cardNumber={wallet.accountNumber}
             modeLabel={settings.savingMode}
+            previewLabel="Account Number"
             variant="preview"
           />
 
@@ -179,6 +184,9 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: colors.white,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   header: {
     paddingHorizontal: spacing.lg,
@@ -262,6 +270,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   panel: {
+    flex: 1,
     marginTop: spacing.xxl,
     paddingTop: 18,
     paddingHorizontal: spacing.lg,

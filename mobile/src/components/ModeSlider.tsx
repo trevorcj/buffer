@@ -17,7 +17,7 @@ const yakubuValues = [50, 100, 500];
 
 export function ModeSlider({ mode, value, onValueChange }: ModeSliderProps) {
   const values = mode === "AGBA" ? agbaValues : yakubuValues;
-  const currentIndex = mode === "AGBA" ? value - 1 : values.indexOf(value);
+  const currentIndex = values.indexOf(value);
   const sliderMinimum = 0;
   const sliderMaximum = values.length - 1;
   const displayValue = mode === "AGBA" ? `${value}%` : `₦${value.toLocaleString()}`;
@@ -43,11 +43,11 @@ export function ModeSlider({ mode, value, onValueChange }: ModeSliderProps) {
         minimumValue={sliderMinimum}
         maximumValue={sliderMaximum}
         onValueChange={(index) => {
-          onValueChange(values[index]);
-        }}
+        onValueChange(values[index]);
+      }}
         step={1}
         style={styles.slider}
-        thumbTintColor={colors.primary}
+        thumbTintColor={colors.secondary}
         value={currentIndex >= 0 ? currentIndex : 0}
       />
 

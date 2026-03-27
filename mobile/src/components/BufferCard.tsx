@@ -10,6 +10,7 @@ interface BufferCardProps {
   modeLabel: string;
   cardNumber: string;
   bufferedLabel?: string;
+  previewLabel?: string;
 }
 
 export function BufferCard({
@@ -17,6 +18,7 @@ export function BufferCard({
   modeLabel,
   cardNumber,
   bufferedLabel = 'You buffered ₦2,090 in the last 30 days',
+  previewLabel = 'Card Number',
 }: BufferCardProps) {
   const { width } = useWindowDimensions();
   const cardWidth = Math.max(280, Math.min(width - spacing.xl * 2, 361));
@@ -38,7 +40,7 @@ export function BufferCard({
           </AppText>
           <View style={styles.previewInfo}>
             <AppText color={colors.gray} style={styles.previewLabel} weight="medium">
-              Card Number
+              {previewLabel}
             </AppText>
             <AppText style={styles.previewNumber} weight="medium">
               {cardNumber}

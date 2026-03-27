@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,12 +15,12 @@ import { AppText } from '../../components/AppText';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { TextField } from '../../components/TextField';
 import { GuestStackParamList } from '../../navigation/types';
-import { colors } from '../../theme/colors';
-import { spacing } from '../../theme/spacing';
-import { mockApi } from '../../services/mockApi';
+import { inferOnboardingCompletion, loginUser } from '../../services/bufferApi';
 import { useAppDispatch } from '../../store/hooks';
 import { setSession } from '../../store/slices/authSlice';
 import { replaceBufferState } from '../../store/slices/bufferSlice';
+import { colors } from '../../theme/colors';
+import { spacing } from '../../theme/spacing';
 
 type Props = NativeStackScreenProps<GuestStackParamList, 'Login'>;
 
@@ -35,7 +36,7 @@ export function LoginScreen({ navigation }: Props) {
     setIsSubmitting(true);
 
     try {
-      const response = await mockApi.login({
+      const response = await loginUser({
         email: email.trim(),
         password,
       });
@@ -44,9 +45,14 @@ export function LoginScreen({ navigation }: Props) {
       dispatch(
         setSession({
           token: response.token,
-          hasCompletedOnboarding: true,
-          transactionPin: '1234',
+          hasCompletedOnboarding: inferOnboardingCompletion(response.state),
+          transactionPin: response.transactionPin,
         }),
+      );
+    } catch (error) {
+      Alert.alert(
+        'Unable to log in',
+        error instanceof Error ? error.message : 'Please try again.',
       );
     } finally {
       setIsSubmitting(false);
@@ -83,6 +89,7 @@ export function LoginScreen({ navigation }: Props) {
             onPress={handleLogin}
             style={styles.button}
             disabled={isDisabled}
+            loading={isSubmitting}
           />
           <Pressable onPress={() => navigation.navigate('SignUp')} style={styles.switchLink}>
             <AppText color={colors.gray} style={styles.linkText} weight="medium">

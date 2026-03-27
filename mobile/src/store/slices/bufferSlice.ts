@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-import { createDemoState, DemoState } from '../../services/mockApi';
+import { createEmptyDemoState, DemoState } from '../../services/mockApi';
 import { CardStatus, UserSettings } from '../../types/domain';
 
 interface BufferState extends DemoState {
@@ -8,7 +8,7 @@ interface BufferState extends DemoState {
   isCardDetailsVisible: boolean;
 }
 
-const initialDemoState = createDemoState();
+const initialDemoState = createEmptyDemoState();
 
 const initialState: BufferState = {
   ...initialDemoState,

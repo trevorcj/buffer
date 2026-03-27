@@ -10,6 +10,7 @@ interface PrimaryButtonProps {
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  loading?: boolean;
   variant?: ButtonVariant;
   style?: ViewStyle;
 }
@@ -18,26 +19,29 @@ export function PrimaryButton({
   label,
   onPress,
   disabled = false,
+  loading = false,
   variant = 'primary',
   style,
 }: PrimaryButtonProps) {
+  const isInactive = disabled || loading;
+
   return (
     <Pressable
       accessibilityRole="button"
-      disabled={disabled}
+      disabled={isInactive}
       onPress={onPress}
       style={({ pressed }) => [
         styles.base,
         variant === 'primary' && styles.primary,
         variant === 'secondary' && styles.secondary,
         variant === 'outline' && styles.outline,
-        disabled && styles.disabled,
-        pressed && !disabled && styles.pressed,
+        isInactive && styles.disabled,
+        pressed && !isInactive && styles.pressed,
         style,
       ]}
     >
       <AppText
-        style={styles.label}
+        style={[styles.label, isInactive && styles.disabledLabel]}
         weight="semibold"
         color={variant === 'secondary' ? colors.white : colors.black}
       >
@@ -74,5 +78,8 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     lineHeight: 20,
+  },
+  disabledLabel: {
+    color: '#4C5C57',
   },
 });

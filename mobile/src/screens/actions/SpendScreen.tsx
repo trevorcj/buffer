@@ -25,6 +25,8 @@ export function SendMoneyScreen({ navigation }: Props) {
   const bufferState = useAppSelector((state) => state.buffer);
   const [amount, setAmount] = useState('');
   const [recipientName, setRecipientName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState<string | null>(null);
@@ -39,12 +41,23 @@ export function SendMoneyScreen({ navigation }: Props) {
     !Number.isFinite(parsedAmount) ||
     parsedAmount <= 0 ||
     !recipientName.trim() ||
+    !accountNumber.trim() ||
     isSubmitting;
 
   const closePinModal = () => {
     setPin('');
     setPinError(null);
     setIsPinModalVisible(false);
+  };
+
+  const openTransactionDetail = (transactionId?: string) => {
+    if (!transactionId) {
+      return false;
+    }
+
+    closePinModal();
+    navigation.replace('TransactionDetail', { transactionId });
+    return true;
   };
 
   const handleOpenPin = () => {
@@ -78,17 +91,31 @@ export function SendMoneyScreen({ navigation }: Props) {
       const nextState = await simulatePayment(token, bufferState, {
         amount: parsedAmount,
         merchantName: recipientName.trim(),
+        accountNumber: accountNumber.trim(),
+        description: description.trim(),
       });
       dispatch(replaceBufferState(nextState));
-      closePinModal();
-      Alert.alert('Money sent', 'Your transfer has been completed successfully.');
-      navigation.goBack();
+      if (!openTransactionDetail(nextState.transactions[0]?.id)) {
+        Alert.alert('Money sent', 'Your transfer has been completed successfully.');
+        navigation.goBack();
+      }
     } catch (error) {
       if (error instanceof TransactionActionError) {
         dispatch(replaceBufferState(error.nextState));
+
+        if (openTransactionDetail(error.nextState.transactions[0]?.id)) {
+          return;
+        }
       }
 
-      Alert.alert('Unable to send money', error instanceof Error ? error.message : 'Please try again.');
+      const message =
+        error instanceof Error && error.message.includes('status code 401')
+          ? 'The transfer service is not authorized on the backend yet. Please try again after the backend transfer credentials are fixed.'
+          : error instanceof Error
+            ? error.message
+            : 'Please try again.';
+
+      Alert.alert('Unable to send money', message);
     } finally {
       setIsSubmitting(false);
     }
@@ -141,6 +168,26 @@ export function SendMoneyScreen({ navigation }: Props) {
               onChangeText={setAmount}
               placeholder="5000"
               value={amount}
+            />
+
+            <AppText style={styles.label} weight="semibold">
+              Account number
+            </AppText>
+            <TextField
+              keyboardType="number-pad"
+              maxLength={10}
+              onChangeText={(value) => setAccountNumber(value.replace(/\D/g, ''))}
+              placeholder="0123456789"
+              value={accountNumber}
+            />
+
+            <AppText style={styles.label} weight="semibold">
+              Description
+            </AppText>
+            <TextField
+              onChangeText={setDescription}
+              placeholder="Rent payment"
+              value={description}
             />
             {spendPreview ? (
               <View style={styles.previewCard}>

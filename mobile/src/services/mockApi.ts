@@ -1,5 +1,5 @@
 import { BufferCard, BufferTransaction, BufferUser, UserSettings, Wallet } from '../types/domain';
-import { getInitials, toAccountName } from '../utils/format';
+import { buildAccountNumber, getInitials } from '../utils/format';
 
 export interface DemoState {
   profile: BufferUser;
@@ -22,44 +22,11 @@ function delay(duration = 300) {
   });
 }
 
-function buildTransactions(): BufferTransaction[] {
-  return [
-    {
-      id: 'txn-online-shopping',
-      merchantName: 'Online Shopping',
-      merchantSubtitle: 'Jumia',
-      icon: 'shopping',
-      amount: 40000.34,
-      savedAmount: 2000.02,
-      status: 'SUCCESS',
-      type: 'PAYMENT',
-      reference: '2537727363533338338383',
-      recipient: 'Jumia',
-      paymentMethod: 'Credit Card',
-      createdAt: '2026-04-23T12:20:00.000Z',
-      dateLabel: 'April 23rd, 2026 12:20:00',
-    },
-    {
-      id: 'txn-spotify',
-      merchantName: 'Spotify Subscription',
-      merchantSubtitle: 'Spotify Inc.',
-      icon: 'spotify',
-      amount: 1800,
-      savedAmount: 90,
-      status: 'SUCCESS',
-      type: 'PAYMENT',
-      reference: '2537727363533338338383',
-      recipient: 'Spotify',
-      paymentMethod: 'Credit Card',
-      createdAt: '2026-04-23T15:37:06.000Z',
-      dateLabel: 'April 23rd, 2026 15:37:06',
-    },
-  ];
-}
-
 function createProfile(name = 'Oluwafemi A.', email = 'oluwafemi@buffer.app'): BufferUser {
+  const normalizedIdSource = `${email}-${name}`.toLowerCase().replace(/[^a-z0-9]/g, '');
+
   return {
-    id: 'user-buffer-demo',
+    id: `user-${normalizedIdSource.slice(0, 24) || 'bufferdemo'}`,
     name,
     email,
     avatarLabel: getInitials(name),
@@ -68,33 +35,31 @@ function createProfile(name = 'Oluwafemi A.', email = 'oluwafemi@buffer.app'): B
   };
 }
 
-function createCard(accountName: string): BufferCard {
-  return {
-    id: 'card-buffer-1',
-    maskedPan: '4000 •••• •••• •••• 2503',
-    fullPan: '4000 0000 0000 2503',
-    accountName,
-    expiryDate: '03/50',
-    cvv: '111',
-    status: 'ACTIVE',
-  };
+export function createDemoState(name?: string, email?: string): DemoState {
+  return createEmptyDemoState(name, email);
 }
 
-export function createDemoState(name?: string, email?: string): DemoState {
-  const profile = createProfile(name, email);
+export function createEmptyDemoState(name?: string, email?: string): DemoState {
+  const profile = {
+    ...createProfile(name, email),
+    kycStatus: 'PENDING' as const,
+    bvn: undefined,
+    nin: undefined,
+  };
   const settings = { ...DEFAULT_SETTINGS };
 
   return {
     profile,
     wallet: {
-      balance: 26589.24,
-      cushionBalance: 2090,
-      bufferedLast30Days: 2090.02,
+      balance: 0,
+      cushionBalance: 0,
+      bufferedLast30Days: 0,
+      accountNumber: buildAccountNumber(`${profile.id}-${profile.email}`),
     },
     settings,
     draftSettings: settings,
-    cards: [createCard(toAccountName(profile.name))],
-    transactions: buildTransactions(),
+    cards: [],
+    transactions: [],
   };
 }
 
@@ -104,7 +69,7 @@ export const mockApi = {
 
     return {
       token: 'buffer-register-token',
-      state: createDemoState(payload.name, payload.email),
+      state: createEmptyDemoState(payload.name, payload.email),
     };
   },
 
@@ -122,7 +87,7 @@ export const mockApi = {
 
     return {
       token: 'buffer-login-token',
-      state: createDemoState(normalizedName || 'Oluwafemi A.', payload.email),
+      state: createEmptyDemoState(normalizedName || 'Oluwafemi A.', payload.email),
     };
   },
 
