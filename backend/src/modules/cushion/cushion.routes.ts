@@ -47,6 +47,7 @@ router.get('/', controller.getCushionBalance);
  *             properties:
  *               amount:
  *                 type: number
+ *                 description: Amount in naira. The backend converts to kobo for Interswitch.
  *               accountNumber:
  *                 type: string
  *               bankCode:
@@ -76,6 +77,7 @@ router.post('/withdraw', validateRequest(withdrawSchema), controller.withdraw);
  *             properties:
  *               amount:
  *                 type: number
+ *                 description: Amount in naira. The backend converts to kobo for Interswitch.
  *               billerId:
  *                 type: string
  *               customerId:
