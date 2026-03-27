@@ -18,7 +18,7 @@ export class AuthService {
       name: dto.name,
       email: dto.email,
       password: hashedPassword,
-      bvn: dto.bvn, // Ideally encypted, simplified for hackathon or handled pre-db
+      bvn: dto.bvn, 
       nin: dto.nin,
     });
 

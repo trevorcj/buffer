@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 export const createCardSchema = z.object({
   body: z.object({
-    // potentially options like label, limit, etc.
   }),
 });
 
