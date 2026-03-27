@@ -31,6 +31,7 @@ router.use(requireAuth_1.requireAuth);
  *             properties:
  *               amount:
  *                 type: number
+ *                 description: Amount in naira. The backend converts to kobo for Interswitch.
  *               merchantName:
  *                 type: string
  *     responses:

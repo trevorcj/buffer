@@ -17,6 +17,39 @@ router.use(requireAuth);
  */
 router.get('/banks', controller.listBanks);
 router.post('/resolve-account', validateRequest(resolveAccountSchema), controller.resolveAccount);
+
+/**
+ * @swagger
+ * /transfers/send:
+ *   post:
+ *     summary: Send money from the main wallet to a bank account
+ *     security:
+ *       - bearerAuth: []
+ *     tags: [Transfers]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               amount:
+ *                 type: number
+ *                 description: Amount in naira. The backend converts to kobo for Interswitch.
+ *               accountNumber:
+ *                 type: string
+ *               bankCode:
+ *                 type: string
+ *               accountName:
+ *                 type: string
+ *               narration:
+ *                 type: string
+ *               transactionPin:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Transfer submitted successfully
+ */
 router.post('/send', validateRequest(sendMoneySchema), controller.sendMoney);
 router.get('/:reference', controller.getTransferStatus);
 

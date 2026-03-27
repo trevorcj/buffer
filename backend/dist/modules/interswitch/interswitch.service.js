@@ -42,6 +42,12 @@ class InterswitchClient {
         }
         return client_1.TransactionStatus.FAILED;
     }
+    toKobo(amount) {
+        if (!Number.isFinite(amount) || amount <= 0) {
+            throw new Error('Amount must be a positive number');
+        }
+        return Math.round(amount * 100);
+    }
     async fetchToken() {
         this.ensureCredentials();
         const authString = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
@@ -92,7 +98,7 @@ class InterswitchClient {
     async authorizePayment(cardDetails, amount) {
         const api = await this.getClient();
         const response = await api.post('/api/v1/payments', {
-            amount,
+            amount: this.toKobo(amount),
             card: {
                 pan: cardDetails.maskedPan,
             },
@@ -110,7 +116,7 @@ class InterswitchClient {
         const api = await this.getClient();
         const response = await api.post('/api/v1/bills/payments', {
             customerId,
-            amount,
+            amount: this.toKobo(amount),
             billerId,
         });
         const payload = response.data?.data ?? response.data;
@@ -126,7 +132,7 @@ class InterswitchClient {
         const api = await this.getClient();
         const requestReference = `BUF-${Date.now()}-${(0, crypto_1.randomUUID)().slice(0, 8)}`;
         const response = await api.post('/api/v1/payouts', {
-            amount,
+            amount: this.toKobo(amount),
             currency: process.env.INTERSWITCH_CURRENCY || 'NGN',
             transactionRef: requestReference,
             type: 'BANK_TRANSFER',

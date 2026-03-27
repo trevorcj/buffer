@@ -44,6 +44,7 @@ router.get('/', controller.getWallet);
  *             properties:
  *               amount:
  *                 type: number
+ *                 description: Amount in naira.
  *     responses:
  *       200:
  *         description: Wallet structured ledger funded
