@@ -17,7 +17,6 @@ Each time a user spends, Buffer automatically moves a small amount into a separa
 - API: [https://buffer-0sox.onrender.com](https://buffer-0sox.onrender.com)
 - Swagger: [https://buffer-0sox.onrender.com/api-docs](https://buffer-0sox.onrender.com/api-docs)
 - Figma: [Design](https://www.figma.com/design/lBYn98UohALuIY08CWV4lt/Buffer?node-id=0-1&t=66lB5HAfJgTECPWj-1) | [Prototype](https://www.figma.com/proto/lBYn98UohALuIY08CWV4lt/Buffer?node-id=16-82&p=f&viewport=377%2C241%2C0.14&t=yrydQ7j4ukLQFu41-1&scaling=contain&content-scaling=fixed&starting-point-node-id=16%3A82&page-id=0%3A1)
-- Expo demo: `Add your Expo or dev build link here`
 
 ## Quick Start
 
