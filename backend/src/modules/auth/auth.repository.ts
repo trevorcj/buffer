@@ -14,7 +14,7 @@ export class AuthRepository {
     });
   }
 
-  // Create initial wallet and settings on registration inside a transaction
+
   async initializeUser(data: Prisma.UserCreateInput) {
     return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const user = await tx.user.create({
